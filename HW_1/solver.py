@@ -34,6 +34,7 @@ class State:
                      self.holeY = i #set the coords of the hole
                      self.holeX = j
         #print(total_moves)
+        return total_moves
 
     def __hash__(self):
         return hash(str(self.puzzle_state))
@@ -41,7 +42,7 @@ class State:
     def __init__(self, puzzle_state):
         self.holeY = None
         self.holeX = None
-        self.move = None  # the move that is chosen to do based on the heuristic
+        self.move = None  # the move that is used to get to this state
 
         self.puzzle_state = puzzle_state
         self.height = len(self.puzzle_state)  # Number of rows
@@ -49,6 +50,10 @@ class State:
         self.goal = [([None]*self.width)] * self.height #initialize empty array of correct size
         self.heuristic = self.find_heuristic()  # Call the method correctly
         self.create_goal() #set goal
+
+    #Change the comparable for heapq
+    def __lt__(self, nxt): 
+        return self.heuristic < nxt.heuristic
 
 def nextState(oldState, tileX, tileY):
     adjustedState = []
@@ -69,19 +74,27 @@ def getNextStates(state):
     #Can move up
     if(state.holeY < (state.height-1)):
         #create new state with the tiles moved up
-        allStates.append(nextState(state, state.holeX, state.holeY+1))
+        newState = nextState(state, state.holeX, state.holeY+1)
+        newState.move = 'U'
+        allStates.append(newState)
 
     #Can move down
     if(state.holeY > 0):
-        allStates.append(nextState(state, state.holeX, state.holeY-1))
+        newState = nextState(state, state.holeX, state.holeY-1)
+        newState.move = 'D'
+        allStates.append(newState)
 
     #Can move right
     if(state.holeX < (state.width-1)):
-        allStates.append(nextState(state, state.holeX+1, state.holeY))
+        newState = nextState(state, state.holeX+1, state.holeY)
+        newState.move = 'R'
+        allStates.append(newState)
 
     #Can move left
     if(state.holeX > 0):
-        allStates.append(nextState(state, state.holeX-1, state.holeY))
+        newState = nextState(state, state.holeX-1, state.holeY)
+        newState.move = 'L'
+        allStates.append(newState)
 
     return allStates
 
@@ -90,14 +103,48 @@ def solve(start):
     openlist = []
     closedlist = []
 
-    #create a state for each possible move with neighbors
+    currentState = State(start)
+    heapq.heappush(openList, currentState)
+
+    while(len(openlist)!=0 and currentState.heuristic != 0):
+        closedlist.append(currentState) #add currentState to the closedlist
+        nextStates = getNextStates(currentState)
+        for i in range(len(nextStates)):
+            heapq.heappush(openlist, nextStates[i]) #push each new state to the openlist
+
+        #pick a new currentState
+        currentState = heapq.heappop(openlist)
+
+    #add final state to the closed list
+    closedlist.append(currentState)
+
+    #track back closed list and find all relevant moves
+    currentHeuristic = 0
+    reversePath = []
+    for state in reversed(closedlist):
+        if(state.heuristic > currentHeuristic):
+            #since this state is not backtracking add it to the path
+            reversePath.append(state.move)
+            currentHeuristic = state.heuristic
+    
+    #reverse the path to get answer
+    path = reversed(path)
+    return path
+        
 
 
-puzzle = State([[6, 5, 2, 3], [7, 0, 11, 4], [9, 1, 10, 8], [15, 14, 13, 12]])
 
 print("Original: ", puzzle.puzzle_state)
 swapped = getNextStates(puzzle)
 print("Possible moves:")
-for i in range(len(swapped)):
-    print(swapped[i].puzzle_state)
 
+heap = []
+heapq.heappush(heap, puzzle)
+for i in range(len(swapped)):
+    heapq.heappush(heap, swapped[i])
+    #print(swapped[i].puzzle_state)
+
+
+for _ in range(len(heap)):
+    puzzle = heapq.heappop(heap)
+    print(puzzle.puzzle_state, " Heuristic: ", puzzle.heuristic)
