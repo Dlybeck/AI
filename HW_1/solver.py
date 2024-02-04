@@ -97,19 +97,19 @@ def nextState(oldState, tileX, tileY):
     return State(adjustedState)
 
 def getNextStates(state, closedset):
-    # get all of the potential states with 1 move
+    # get all of the potential states within 1 move
     allStates = []
 
     # Can move up
     if state.holeY < (state.height - 1):
         # create a new state with the tiles moved up
-        newState = nextState(state, state.holeX, state.holeY + 1)
+        newState = nextState(state, state.holeX, state.holeY + 1) #Create new state
         if newState not in closedset:
-            newState.move = 'U'
-            newState.moves = state.moves + 1
-            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
-            newState.lastState = state
-            allStates.append(newState)
+            newState.move = 'U' #add the move used to get this state
+            newState.moves = state.moves + 1 #add 1 to the moves total
+            newState.heuristic = newState.find_heuristic()  #Update the heuristic value
+            newState.lastState = state #set the previous state of this state
+            allStates.append(newState) #add this state to the list of states
 
     # Can move down
     if state.holeY > 0:
@@ -117,7 +117,7 @@ def getNextStates(state, closedset):
         if newState not in closedset:
             newState.move = 'D'
             newState.moves = state.moves + 1
-            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
+            newState.heuristic = newState.find_heuristic()
             newState.lastState = state
             allStates.append(newState)
 
@@ -127,7 +127,7 @@ def getNextStates(state, closedset):
         if newState not in closedset:
             newState.move = 'L'
             newState.moves = state.moves + 1
-            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
+            newState.heuristic = newState.find_heuristic()
             newState.lastState = state
             allStates.append(newState)
 
@@ -137,7 +137,7 @@ def getNextStates(state, closedset):
         if newState not in closedset:
             newState.move = 'R'
             newState.moves = state.moves + 1
-            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
+            newState.heuristic = newState.find_heuristic()
             newState.lastState = state
             allStates.append(newState)
 
