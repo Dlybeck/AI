@@ -96,50 +96,48 @@ def nextState(oldState, tileX, tileY):
 
     return State(adjustedState)
 
-def getNextStates(state, closedlist):
-    #get all of the potential states with 1 move
+def getNextStates(state, closedset):
+    # get all of the potential states with 1 move
     allStates = []
-    #Can move up
-    if(state.holeY < (state.height-1)):
-        #create new state with the tiles moved up
-        newState = nextState(state, state.holeX, state.holeY+1)
-        if(newState not in closedlist):
+
+    # Can move up
+    if state.holeY < (state.height - 1):
+        # create a new state with the tiles moved up
+        newState = nextState(state, state.holeX, state.holeY + 1)
+        if newState not in closedset:
             newState.move = 'U'
             newState.moves = state.moves + 1
-            newState.heuristic += newState.moves
+            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
             newState.lastState = state
             allStates.append(newState)
 
-    #Can move down
-    if(state.holeY > 0):
-        newState = nextState(state, state.holeX, state.holeY-1)
-        if(newState not in closedlist):
+    # Can move down
+    if state.holeY > 0:
+        newState = nextState(state, state.holeX, state.holeY - 1)
+        if newState not in closedset:
             newState.move = 'D'
             newState.moves = state.moves + 1
-            newState.heuristic += newState.moves
+            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
             newState.lastState = state
             allStates.append(newState)
 
-
-
-    #Can move right
-    if(state.holeX < (state.width-1)):
-        newState = nextState(state, state.holeX+1, state.holeY)
-        if(newState not in closedlist):
+    # Can move right
+    if state.holeX < (state.width - 1):
+        newState = nextState(state, state.holeX + 1, state.holeY)
+        if newState not in closedset:
             newState.move = 'L'
             newState.moves = state.moves + 1
-            newState.heuristic += newState.moves
+            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
             newState.lastState = state
             allStates.append(newState)
 
-
-    #Can move left
-    if(state.holeX > 0):
-        newState = nextState(state, state.holeX-1, state.holeY)
-        if(newState not in closedlist):
+    # Can move left
+    if state.holeX > 0:
+        newState = nextState(state, state.holeX - 1, state.holeY)
+        if newState not in closedset:
             newState.move = 'R'
             newState.moves = state.moves + 1
-            newState.heuristic += newState.moves
+            newState.heuristic = newState.find_heuristic()  # Update the heuristic value
             newState.lastState = state
             allStates.append(newState)
 
@@ -173,7 +171,6 @@ def solve(start):
     while len(openlist) != 0 and currentState.puzzle_state != goal:
         newState = heapq.heappop(openlist)  # pick the next state
         currentState = newState  # update currentState for repeat
-
         closedset.add(currentState)  # add currentState to the closedset
         nextStates = getNextStates(currentState, closedset)
         for i in range(len(nextStates)):
