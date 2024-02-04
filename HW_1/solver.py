@@ -104,11 +104,12 @@ def getNextStates(state, closedlist = []):
     #Can move left
     if(state.holeX > 0):
         newState = nextState(state, state.holeX-1, state.holeY)
-        newState.move = 'R'
-        newState.moves = state.moves + 1
-        newState.heuristic += newState.moves
-        newState.lastState = state
-        allStates.append(newState)
+        if(not containsState(newState, closedlist)):
+            newState.move = 'R'
+            newState.moves = state.moves + 1
+            newState.heuristic += newState.moves
+            newState.lastState = state
+            allStates.append(newState)
 
     return allStates
 
@@ -127,21 +128,19 @@ def create_goal(state):
 def solve(start):
     openlist = []
     closedlist = []
-    runs = 0
 
     currentState = State(start)
+    heapq.heappush(openlist, currentState)
     goal = create_goal(currentState)
 
-    while((runs == 0 or len(openlist)!=0) and currentState.puzzle_state!=goal):
-        runs += 1
+    while(len(openlist)!=0 and currentState.puzzle_state!=goal):
+        newState = heapq.heappop(openlist) #pick the next state
+        currentState = newState #update currentState for repeat
+
         closedlist.append(currentState) #add currentState to the closedlist
         nextStates = getNextStates(currentState, closedlist)
         for i in range(len(nextStates)):
             heapq.heappush(openlist, nextStates[i]) #push each new state to the openlist
-
-        #pick the next state
-        newState = heapq.heappop(openlist)
-        currentState = newState #update currentState for repeat
 
     #add final state to the closed list
     closedlist.append(currentState)
