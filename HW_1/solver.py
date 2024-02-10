@@ -37,23 +37,11 @@ class State:
         self.width = len(self.info.puzzle_state[0])  # Number of columns
         self.heuristic = find_heuristic(self)  # Call the method correctly
 
-    def __hash__(self):
-        '''
-        Proper hash function for state
-        '''
-        return hash(str(self.info.puzzle_state))
-
     def __lt__(self, nxt): 
         '''
         Update less than for the heapq comparison
         '''
         return self.heuristic < nxt.heuristic
-    
-    def __eq__(self, other):
-        '''
-        Makes the states compare properly
-        '''
-        return self.info.puzzle_state == other.info.puzzle_state
 
 def find_heuristic(state):
     '''
