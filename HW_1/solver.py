@@ -3,6 +3,27 @@ import heapq
 import copy
 import time
 
+class Info:
+    def __init__(self, puzzle_state, move, lastState):
+        '''
+        Initialize info
+        '''
+        self.puzzle_state = puzzle_state
+        self.move = move
+        self.lastState = lastState
+
+    def __hash__(self):
+        '''
+        Proper hash function for state
+        '''
+        return hash(str(self.puzzle_state))
+    
+    def __eq__(self, other):
+        '''
+        Makes info compare properly
+        '''
+        return self.puzzle_state == other.puzzle_state
+
 class State: 
     def __init__(self, puzzle_state):
         '''
@@ -10,19 +31,17 @@ class State:
         '''
         self.holeY = None
         self.holeX = None
-        self.move = None  #the move that is used to get to this state
-        self.lastState = None
+        self.info = Info(puzzle_state, None, None)
         self.moves = 0
-        self.puzzle_state = puzzle_state
-        self.height = len(self.puzzle_state)  # Number of rows
-        self.width = len(self.puzzle_state[0])  # Number of columns
+        self.height = len(self.info.puzzle_state)  # Number of rows
+        self.width = len(self.info.puzzle_state[0])  # Number of columns
         self.heuristic = find_heuristic(self)  # Call the method correctly
 
     def __hash__(self):
         '''
         Proper hash function for state
         '''
-        return hash(str(self.puzzle_state))
+        return hash(str(self.info.puzzle_state))
 
     def __lt__(self, nxt): 
         '''
@@ -34,7 +53,7 @@ class State:
         '''
         Makes the states compare properly
         '''
-        return self.puzzle_state == other.puzzle_state
+        return self.info.puzzle_state == other.info.puzzle_state
 
 def find_heuristic(state):
     '''
@@ -44,10 +63,10 @@ def find_heuristic(state):
     total_moves = 0
     for i in range(state.height):
         for j in range(state.width):
-            if state.puzzle_state[i][j] != 0: #skip the "empty" tile
+            if state.info.puzzle_state[i][j] != 0: #skip the "empty" tile
                 #find proper row and column index for current state
-                row_index = (state.puzzle_state[i][j] - 1) % state.width
-                column_index = math.floor((state.puzzle_state[i][j] - 1) / state.height)
+                row_index = (state.info.puzzle_state[i][j] - 1) % state.width
+                column_index = math.floor((state.info.puzzle_state[i][j] - 1) / state.height)
                 tile_moves=abs(row_index - j) #horizontal distance
                 tile_moves += abs(column_index - i) #vertical distance
                 total_moves += tile_moves
@@ -67,7 +86,7 @@ def checkPuzzle(state):
     zeroFound = False
 
     #flatten the list puzzle
-    for row in state.puzzle_state:
+    for row in state.info.puzzle_state:
         for elem in row:
             if elem != 0: list.append(elem)
             else: zeroFound = True
@@ -88,28 +107,30 @@ def checkPuzzle(state):
         if inversions % 2 == 0: return True
         else: return False
 
-def createNextState(oldState, tileX, tileY):
+def createNextPosition(oldState, tileX, tileY):
     '''
     copies the old state and makes a new one with a moved tile
     returns the new state
     '''
     adjustedState = []
-    adjustedState = copy.deepcopy(oldState.puzzle_state)
+    adjustedState = copy.deepcopy(oldState.info.puzzle_state)
     tile = adjustedState[tileY][tileX]
     adjustedState[oldState.holeY][oldState.holeX] = tile #move tile to the empty place
     adjustedState[tileY][tileX] = 0 #put empty spot where tile was
 
-    return State(adjustedState)
+    return adjustedState
 
-def updateState(stateList, state, newState, move, closedlist):
+def updateState(stateList, state, newPos, move, closedlist):
     '''
     updates all of the values if it hasn't already been explored
     '''
-    if newState not in closedlist:
-        newState.move = move
+    info = Info(newPos, move, state)
+    if info not in closedlist:
+        newState = State(newPos)
+        newState.info.move = move
         newState.moves = state.moves + 1
         newState.heuristic += newState.moves
-        newState.lastState = state
+        newState.info.lastState = state
         stateList.append(newState)
 
 #get all of the potential states with 1 move
@@ -122,20 +143,20 @@ def getNextStates(state, closedlist):
     #Can move up
     if state.holeY < (state.height-1):
         #create new state with the tiles moved up
-        newState = createNextState(state, state.holeX, state.holeY+1)
-        updateState(allStates, state, newState, 'U', closedlist)
+        newPos = createNextPosition(state, state.holeX, state.holeY+1)
+        updateState(allStates, state, newPos, 'U', closedlist)
     #Can move down
     if state.holeY > 0:
-        newState = createNextState(state, state.holeX, state.holeY-1)
-        updateState(allStates, state, newState, 'D', closedlist)
+        newPos = createNextPosition(state, state.holeX, state.holeY-1)
+        updateState(allStates, state, newPos, 'D', closedlist)
     #Can move right
     if state.holeX < (state.width-1):
-        newState = createNextState(state, state.holeX+1, state.holeY)
-        updateState(allStates, state, newState, 'L', closedlist)
+        newPos = createNextPosition(state, state.holeX+1, state.holeY)
+        updateState(allStates, state, newPos, 'L', closedlist)
     #Can move left
     if state.holeX > 0:
-        newState = createNextState(state, state.holeX-1, state.holeY)
-        updateState(allStates, state, newState, 'R', closedlist)
+        newPos = createNextPosition(state, state.holeX-1, state.holeY)
+        updateState(allStates, state, newPos, 'R', closedlist)
     return allStates
 
 def create_goal(state):
@@ -171,22 +192,25 @@ def solve(start):
     heapq.heappush(openlist, currentState)
     goal = create_goal(currentState)
 
-    while len(openlist) != 0 and currentState.puzzle_state != goal:
+    while len(openlist) != 0 and currentState.info.puzzle_state != goal:
         newState = heapq.heappop(openlist)  # pick the next state
         currentState = newState  # update currentState for repeat
-        closedset.add(currentState)  # add currentState to the closedset
+        closedset.add(currentState.info)  # add currentState to the closedset
         nextStates = getNextStates(currentState, closedset)
         for i in range(len(nextStates)): heapq.heappush(openlist, nextStates[i])  # push each new state to the openlist
 
-    closedset.add(currentState) # add final state to the closed set
-    path.append(currentState.move) # Trace back the path
+    closedset.add(currentState.info) # add final state to the closed set
+    path.append(currentState.info.move) # Trace back the path
     
     # runs on all but the start state
-    while currentState.lastState:
-        currentState = currentState.lastState
-        if currentState.lastState is not None: path.append(currentState.move)
+    while currentState.info.lastState:
+        currentState = currentState.info.lastState
+        if currentState.info.lastState is not None: path.append(currentState.info.move)
     path.reverse()  # Reverse the list in-place
 
     endTime = time.time()
     print("Completed in ", endTime-startTime, " seconds")
     return path
+
+
+#solve([[1, 2, 3], [4, 5, 6], [7, 0, 8]])
