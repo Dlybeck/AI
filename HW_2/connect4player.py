@@ -41,6 +41,7 @@ class ComputerPlayer:
                 total_score += self.Score_Quartet(quartet)
 
         print("Looked at ", looked_at, " quartets")
+        print("Total Score is ", total_score)
 
     def Score_Quartet(self, quartet):
         whos_quartet = 0 #variable to keep track of what player has the first disc in this quarted
