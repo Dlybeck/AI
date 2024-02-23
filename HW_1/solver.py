@@ -59,10 +59,11 @@ def check_puzzle_solvable(state):
     list = []
     inversions = 0
     gap = height - 1
+    gap = height - 1
     zeroFound = False
 
     #flatten the list puzzle
-    for row in state.info.puzzle_state:
+    for row in state.puzzle_state:
         for elem in row:
             if (elem != 0): list.append(elem)
             else: zeroFound = True
