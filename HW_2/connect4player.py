@@ -34,13 +34,38 @@ class ComputerPlayer:
         looked_at = 0
         total_score = 0
         #Check all horizontal quartets
-        for col in range(len(rack) - 3):
+        for col in range(len(rack)-3):
             for slot in range(len(rack[col])):
                 looked_at += 1
                 quartet = (rack[col][slot], rack[col+1][slot], rack[col+2][slot], rack[col+3][slot])
                 total_score += self.Score_Quartet(quartet)
-
         print("Looked at ", looked_at, " quartets")
+
+        #check for all the vertical quartets
+        for col in range(len(rack)):
+            for slot in range(len(rack[col])-3):
+                looked_at += 1
+                quartet = (rack[col][slot], rack[col][slot+1], rack[col][slot+2], rack[col][slot+3])
+                total_score += self.Score_Quartet(quartet)
+        print("Looked at ", looked_at, " quartets")
+
+        #check low to high diagonals
+        for col in range(len(rack)-3):
+            for slot in range(len(rack[col])-3):
+                looked_at += 1
+                quartet = (rack[col][slot], rack[col+1][slot+1], rack[col+2][slot+2], rack[col+3][slot+3])
+                total_score += self.Score_Quartet(quartet)
+        print("Looked at ", looked_at, " quartets")
+
+        #check high to low diagonals
+        for col in range(len(rack)-3):
+            for slot in range(len(rack[col])-3):
+                slot +=3
+                looked_at += 1
+                quartet = (rack[col][slot], rack[col+1][slot-1], rack[col+2][slot-2], rack[col+3][slot-3])
+                total_score += self.Score_Quartet(quartet)
+        print("Looked at ", looked_at, " quartets")
+
         print("Total Score is ", total_score)
 
     def Score_Quartet(self, quartet):
@@ -80,4 +105,13 @@ class ComputerPlayer:
 
 player = ComputerPlayer(1, 4)
 
-player.evaluate([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+'''
+THE BOARD IS UPSIDE DOWN
+'''
+player.evaluate([[0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0]])
