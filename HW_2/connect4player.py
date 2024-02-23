@@ -1,113 +1,82 @@
-from typing import Tuple
+"""
+This Connect Four player just picks a random spot to play. It's pretty dumb.
+"""
+__author__ = "Adam A. Smith" # replace my name with yours
+__license__ = "MIT"
+__date__ = "February 2018"
+
 import random
+import time
 
 class ComputerPlayer:
-    def __init__(self, id: int, difficulty_level: int):
+    def __init__(self, id, difficulty_level):
         self.id = id
-        self.difficulty_level = difficulty_level
-
-    def pick_move(self, rack: Tuple[Tuple[int, ...], ...]) -> int:
-        moves = self.generate_legal_moves(rack)
-        if not moves:
-            return -1  # No legal moves available
-        return random.choice(moves)
-
-    def generate_legal_moves(self, rack: Tuple[Tuple[int, ...], ...]) -> list:
-        legal_moves = []
-        for col in range(len(rack[0])):
-            if rack[0][col] == 0:
-                legal_moves.append(col)
-        return legal_moves
-
-    def _simulate_move(self, rack: Tuple[Tuple[int, ...], ...], move: int, player: int) -> Tuple[Tuple[int, ...], ...]:
-        new_rack = list(rack)
-        for row in range(len(new_rack)):
-            if new_rack[row][move] == 0:
-                new_rack[row] = new_rack[row][:move] + (player,) + new_rack[row][move + 1 :]
-                break
-        return tuple(new_rack)
-
-    def find_win(self, rack: Tuple[Tuple[int, ...], ...]) -> int:
+        self.depth = difficulty_level
         """
-        Check if a player has won the game.
-
-        Parameters:
-            rack (tuple): The current state of the Connect Four board.
-
-        Returns:
-            int: The ID of the winning player (1 or 2), or 0 if no player has won.
+        Constructor, takes a difficulty level (likely the # of plies to look
+        ahead), and a player ID that's either 1 or 2 that tells the player what
+        its number is.
         """
-        # Check horizontal
-        for row in rack:
-            for col in range(len(row) - 3):
-                if row[col] != 0 and row[col] == row[col + 1] == row[col + 2] == row[col + 3]:
-                    return row[col]
+        pass
 
-        # Check vertical
-        for col in range(len(rack[0])):
-            for row in range(len(rack) - 3):
-                if rack[row][col] != 0 and rack[row][col] == rack[row + 1][col] == rack[row + 2][col] == rack[row + 3][col]:
-                    return rack[row][col]
+    def pick_move(self, rack):
+        """
+        Pick the move to make. It will be passed a rack with the current board
+        layout, column-major. A 0 indicates no token is there, and 1 or 2
+        indicate discs from the two players. Column 0 is on the left, and row 0 
+        is on the bottom. It must return an int indicating in which column to 
+        drop a disc. The player current just pauses for half a second (for 
+        effect), and then chooses a random valid move.
+        """
+        evaluate(rack);
 
-        # Check diagonal (up-right)
-        for row in range(len(rack) - 3):
-            for col in range(len(rack[0]) - 3):
-                if rack[row][col] != 0 and rack[row][col] == rack[row + 1][col + 1] == rack[row + 2][col + 2] == rack[row + 3][col + 3]:
-                    return rack[row][col]
+    def evaluate(self, rack):
+        looked_at = 0
+        total_score = 0
+        #Check all horizontal quartets
+        for col in range(len(rack) - 3):
+            for slot in range(len(rack[col])):
+                looked_at += 1
+                quartet = (rack[col][slot], rack[col+1][slot], rack[col+2][slot], rack[col+3][slot])
+                total_score += self.Score_Quartet(quartet)
 
-        # Check diagonal (down-right)
-        for row in range(3, len(rack)):
-            for col in range(len(rack[0]) - 3):
-                if rack[row][col] != 0 and rack[row][col] == rack[row - 1][col + 1] == rack[row - 2][col + 2] == rack[row - 3][col + 3]:
-                    return rack[row][col]
+        print("Looked at ", looked_at, " quartets")
 
-        return 0  # No winner
+    def Score_Quartet(self, quartet):
+        whos_quartet = 0 #variable to keep track of what player has the first disc in this quarted
+        count = 0
+        for i in range(len(quartet)):
+            #what player's discs are in this quartet?
+            if(whos_quartet == 0 and quartet[i] != 0):
+                whos_quartet = quartet[i]
 
-    def negamax(self, rack: Tuple[Tuple[int, ...], ...], depth: int, alpha: float, beta: float, color: int) -> int:
-        if depth == 0 or self.find_win(rack) != 0:
-            return color * self.evaluate(rack, self.id)
-
-        moves = self.generate_legal_moves(rack)
-        for move in moves:
-            new_rack = self._simulate_move(rack, move, color)
-            score = -self.negamax(new_rack, depth - 1, -beta, -alpha, 3 - color)
-            alpha = max(alpha, score)
-            if alpha >= beta:
+            #There is nothing in this quartet
+            if(quartet[i] == 0): continue
+            #There is only one color in this quartet
+            elif(quartet[i] == whos_quartet):
+                count += 1
+            #there is a mix of discs in this quartet
+            else:
+                count = 0
                 break
-        return alpha
+        
+        if(count != 0 and whos_quartet != 0):
+            if(count == 0): return 0
+            if(whos_quartet == self.id):
+                #Positive
+                if(count == 1): return 1
+                elif(count == 2): return 10
+                elif(count == 3): return 100
+                else: return 100000
+            else:
+                #negative
+                if(count == 1): return -1
+                elif(count == 2): return -10
+                elif(count == 3): return -100
+                else: return -100000
+        else:
+            return 0
 
-    def evaluate(self, rack: Tuple[Tuple[int, ...], ...], player_id: int) -> int:
-        score = 0
-        # Evaluate each quartet
-        for row in range(len(rack)):
-            for col in range(len(rack[0])):
-                if col <= len(rack[0]) - 4:
-                    score += self.evaluate_quartet(rack[row][col:col+4], player_id)
-                if row <= len(rack) - 4:
-                    score += self.evaluate_quartet([rack[row+i][col] for i in range(4)], player_id)
-                if col <= len(rack[0]) - 4 and row <= len(rack) - 4:
-                    score += self.evaluate_quartet([rack[row+i][col+i] for i in range(4)], player_id)
-                if col >= 3 and row <= len(rack) - 4:
-                    score += self.evaluate_quartet([rack[row+i][col-i] for i in range(4)], player_id)
-        return score
+player = ComputerPlayer(1, 4)
 
-    def evaluate_quartet(self, quartet: list, player_id: int) -> int:
-        opponent_id = 3 - player_id  # Calculate the opponent's ID
-        if quartet.count(player_id) == 4:
-            return 1000000
-        elif quartet.count(opponent_id) == 4:
-            return -1000000
-        elif quartet.count(player_id) == 3 and quartet.count(0) == 1:
-            return 100
-        elif quartet.count(opponent_id) == 3 and quartet.count(0) == 1:
-            return -100
-        elif quartet.count(player_id) == 2 and quartet.count(0) == 2:
-            return 10
-        elif quartet.count(opponent_id) == 2 and quartet.count(0) == 2:
-            return -10
-        elif quartet.count(player_id) == 1 and quartet.count(0) == 3:
-            return 1
-        elif quartet.count(opponent_id) == 1 and quartet.count(0) == 3:
-            return -1
-        return 0
-
+player.evaluate([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
