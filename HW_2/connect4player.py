@@ -38,7 +38,7 @@ class ComputerPlayer:
         drop a disc. The player current just pauses for half a second (for 
         effect), and then chooses a random valid move.
         """
-
+        time_start = time.time()
         rack = [list(col) for col in rack]
 
         self.width = len(rack)
@@ -46,6 +46,9 @@ class ComputerPlayer:
 
         move = self.negamax(rack, self.id, self.depth)
         #print("Playing move with score ", -move.score)
+
+        time_end = time.time()
+        print("Finished move in ", time_end - time_start, " seconds")
         return move.move
 
 
