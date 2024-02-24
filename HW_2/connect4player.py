@@ -15,7 +15,7 @@ class ComputerPlayer:
         ahead), and a player ID that's either 1 or 2 that tells the player what
         its number is.
         """
-        self.id = 3-id
+        self.id = id
 
         self.depth = difficulty_level
 
