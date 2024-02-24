@@ -52,7 +52,7 @@ class ComputerPlayer:
         return move.move
 
 
-    def negamax(self, rack, id, depth, score = 0):
+    def negamax(self, rack, id, depth):
         if depth == 0 or self.Is_Game_Over(rack):
             return self.State(-self.evaluate(rack, id), None)
 
@@ -65,14 +65,7 @@ class ComputerPlayer:
                     rack[col][disc] = id  # Make the move
 
                     # Recurse
-                    score = self.evaluate(rack, id)
-
-                    #Immediately Return on a winning state
-                    if(score > 500000):
-                        rack[col][disc] = 0  # Reset the move to make the next move
-                        return self.State(-score, col)
-
-                    new_State = self.negamax(rack, 3 - id, depth - 1, score)
+                    new_State = self.negamax(rack, 3 - id, depth - 1)
 
                     scores.append(new_State.score)
                     # If this move is better than a previous move, update best_State
