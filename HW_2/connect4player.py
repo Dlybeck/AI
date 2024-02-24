@@ -45,11 +45,11 @@ class ComputerPlayer:
         self.height = len(rack[0])
 
         move = self.negamax(rack, self.id, self.depth)
-        print("Playing move with score ", -move.score)
+        #print("Playing move with score ", -move.score)
         return move.move
 
 
-    def negamax(self, rack, id, depth):
+    def negamax(self, rack, id, depth, score = 0):
         if depth == 0 or self.Is_Game_Over(rack):
             return self.State(-self.evaluate(rack, id), None)
 
@@ -62,7 +62,14 @@ class ComputerPlayer:
                     rack[col][disc] = id  # Make the move
 
                     # Recurse
-                    new_State = self.negamax(rack, 3 - id, depth - 1)
+                    score = self.evaluate(rack, id)
+
+                    #Immediately Return on a winning state
+                    if(score > 500000):
+                        rack[col][disc] = 0  # Reset the move to make the next move
+                        return self.State(-score, col)
+
+                    new_State = self.negamax(rack, 3 - id, depth - 1, score)
 
                     scores.append(new_State.score)
                     # If this move is better than a previous move, update best_State
@@ -72,8 +79,8 @@ class ComputerPlayer:
 
                     rack[col][disc] = 0  # Reset the move to make the next move
                     break  # To only look at one move per column
-        if(id == self.id): print("Bot picked ", best_State.score, " out of ", scores)
-        if(id != self.id): print("Player picked ", best_State.score, " out of ", scores)
+        #if(id == self.id): print("Bot picked ", best_State.score, " out of ", scores)
+        #if(id != self.id): print("Player picked ", best_State.score, " out of ", scores)
         
         return self.State(-best_State.score, best_State.move)
 
