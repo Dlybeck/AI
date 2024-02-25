@@ -25,6 +25,9 @@ class ComputerPlayer:
         pass
 
     class State:
+        '''
+        Class that stores the score and move to get to the current state of the board
+        '''
         def __init__(self, score, col_Index):
             self.score = score
             self.move = col_Index
