@@ -16,16 +16,16 @@ class ComputerPlayer:
         its number is.
         """
         self.id = id
+
         self.depth = difficulty_level
+
         self.width = None
         self.height = None
+
         pass
 
     class State:
         def __init__(self, score, col_Index):
-            '''
-            Initialize the state class which contains a boards score and move to get to it
-            '''
             self.score = score
             self.move = col_Index
 
@@ -34,40 +34,46 @@ class ComputerPlayer:
         Pick the move to make. It will be passed a rack with the current board
         layout, column-major. A 0 indicates no token is there, and 1 or 2
         indicate discs from the two players. Column 0 is on the left, and row 0 
-        is on the bottom. It returns an int indicating in which column to 
-        drop a disc.
+        is on the bottom. It must return an int indicating in which column to 
+        drop a disc. The player current just pauses for half a second (for 
+        effect), and then chooses a random valid move.
         """
         time_start = time.time()
         rack = [list(col) for col in rack]
+
         self.width = len(rack)
         self.height = len(rack[0])
-        
+
         move = self.negamax(rack, self.id, self.depth)
         #print("Playing move with score ", -move.score)
+
         time_end = time.time()
-        #print("Finished move in ", time_end - time_start, " seconds")
+        print("Finished move in ", time_end - time_start, " seconds")
         return move.move
 
 
-    def negamax(self, rack, id, depth):
-        '''
-        This is the recursive function used to find the best possible move that is within depth moves
-        '''
-        #Base case
+    def negamax(self, rack, id, depth, score = 0):
         if depth == 0 or self.Is_Game_Over(rack):
-            return self.State(-self.evaluate(rack, id), None)
+            return self.State(score, None)
 
-        best_State = self.State(-float('inf'), None)  #Initialize best_State with a very low score
+        best_State = self.State(-float('inf'), None)  # Initialize best_State with a very low score
         scores = []
-        #Check every possible move (once per column)
         for col in range(self.width):
             for disc in range(self.height):
-                #Can play here
+                # Can play here
                 if rack[col][disc] == 0:
-                    rack[col][disc] = id  #Make the move
+                    rack[col][disc] = id  # Make the move
 
-                    #Recurse
-                    new_State = self.negamax(rack, 3 - id, depth - 1)
+                    # Recurse
+                    score = self.evaluate(rack, id)
+
+                    #Immediately Return on a winning state
+                    if(score > 500000):
+                        rack[col][disc] = 0  # Reset the move to make the next move
+                        return self.State(-score, col)
+
+                    new_State = self.negamax(rack, 3 - id, depth - 1, score)
+
                     scores.append(new_State.score)
                     # If this move is better than a previous move, update best_State
                     if new_State.score > best_State.score:
@@ -75,25 +81,22 @@ class ComputerPlayer:
                         best_State.move = col
 
                     rack[col][disc] = 0  # Reset the move to make the next move
-                    break  # To only look at one move per column        
+                    break  # To only look at one move per column
+        #if(id == self.id): print("Bot picked ", best_State.score, " out of ", scores)
+        #if(id != self.id): print("Player picked ", best_State.score, " out of ", scores)
+        
         return self.State(-best_State.score, best_State.move)
 
 
 
     def Is_Game_Over(self, rack):
-        '''
-        Check the given rack to see if every slot is filled
-        '''
         full = True
+
         for col in range(self.width):
             if(rack[col][self.height-1] == 0): full = False
         return full
 
     def evaluate(self, rack, id):
-        '''
-        Find and score the given board. Looks through every quartet.
-        Returns the total score
-        '''
         looked_at = 0
         total_score = 0
         #Check all horizontal quartets
@@ -124,9 +127,6 @@ class ComputerPlayer:
         return total_score
 
     def Score_Quartet(self, quartet, id):
-        '''
-        Takes a quartet and returns the score
-        '''
         whos_quartet = 0 #variable to keep track of what player has the first disc in this quarted
         count = 0
         for i in range(len(quartet)):
@@ -156,5 +156,6 @@ class ComputerPlayer:
                 elif(count == 2): return -10
                 elif(count == 3): return -100
                 else: return -1000000
+                
         else:
             return 0
