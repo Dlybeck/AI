@@ -34,9 +34,8 @@ class ComputerPlayer:
         Pick the move to make. It will be passed a rack with the current board
         layout, column-major. A 0 indicates no token is there, and 1 or 2
         indicate discs from the two players. Column 0 is on the left, and row 0 
-        is on the bottom. It must return an int indicating in which column to 
-        drop a disc. The player current just pauses for half a second (for 
-        effect), and then chooses a random valid move.
+        is on the bottom. Return an int indicating in which column to 
+        drop a disc.
         """
         time_start = time.time()
         rack = [list(col) for col in rack]
@@ -53,12 +52,19 @@ class ComputerPlayer:
 
 
     def negamax(self, rack, id, depth, score = 0):
+        '''
+        Recursive function to pick the best move for player id
+        returns the column index of the best move
+        '''
+        
         if depth == 0 or self.Is_Game_Over(rack):
             return self.State(score, None)
 
         best_State = self.State(-float('inf'), None)  # Initialize best_State with a very low score
         scores = []
         for col in range(self.width):
+            if(rack[col][-1]):
+                continue
             for disc in range(self.height):
                 # Can play here
                 if rack[col][disc] == 0:
@@ -90,13 +96,20 @@ class ComputerPlayer:
 
 
     def Is_Game_Over(self, rack):
+        '''
+        Takes a given rack and checks to see if all of the slots are filled
+        Returns true if it is full
+        '''
         full = True
-
         for col in range(self.width):
             if(rack[col][self.height-1] == 0): full = False
         return full
 
     def evaluate(self, rack, id):
+        '''
+        Takes a rack and the player id and calculates the score of the current rack
+        returns the total score of the rac
+        '''
         looked_at = 0
         total_score = 0
         #Check all horizontal quartets
@@ -127,6 +140,10 @@ class ComputerPlayer:
         return total_score
 
     def Score_Quartet(self, quartet, id):
+        '''
+        Takes a given quarted and scores it
+        Returns the score
+        '''
         whos_quartet = 0 #variable to keep track of what player has the first disc in this quarted
         count = 0
         for i in range(len(quartet)):
