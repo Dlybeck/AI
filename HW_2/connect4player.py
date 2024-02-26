@@ -1,9 +1,8 @@
 """
-This Connect Four player just picks a random spot to play. It's pretty dumb.
+This Connect Four player that plays looking ahead n plies and playing the best move
 """
-__author__ = "Adam A. Smith" # replace my name with yours
-__license__ = "MIT"
-__date__ = "February 2018"
+__author__ = "David Lybeck" # replace my name with yours
+__date__ = "February 2023"
 
 import random
 import time
@@ -16,7 +15,6 @@ class ComputerPlayer:
         its number is.
         """
         self.id = id
-
         self.depth = difficulty_level
 
         self.width = None
