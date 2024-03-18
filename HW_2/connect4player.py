@@ -45,7 +45,7 @@ class ComputerPlayer:
         move = self.negamax(rack, self.id, self.depth)
         #print("Playing move with score ", -move.score)
         time_end = time.time()
-        #print("Finished move in ", time_end - time_start, " seconds")
+        print("Finished move in ", time_end - time_start, " seconds")
         return move.move
 
 
