@@ -36,9 +36,24 @@ def parse_arguments():
         reps[i] = rep(info[0], info[1], info[2])
         print(reps[i])
     
+    return reps
+    
+def split_data(data):
+    tuning_set = []
+    training_set = []
+    for i in range(len(data)):
+        if(i % 4 == 0): tuning_set.append(data[i]) #Create tuning set
+        else: training_set.append(data[i]) #create training set
+        
+    return training_set, tuning_set
+
+def create_decision_tree(training_set):
     
         
 
 
 if __name__ == "__main__":
-    parse_arguments()
+    data = parse_arguments()
+    training_set, tuning_set = split_data(data)
+    create_decision_tree(training_set)
+    
