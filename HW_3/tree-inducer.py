@@ -1,4 +1,5 @@
 import sys
+import math
 
 class rep:
     def __init__(self, id, label, votes):
@@ -48,9 +49,46 @@ def split_data(data):
     return training_set, tuning_set
 
 def create_decision_tree(training_set):
+    numA = 0
+    numB = 0
+    for rep in training_set:
+        if(rep.label == 'D'): numA += 1
+        else: numB += 1
+    #print("There are ", numA, " Democrats and ", numB, " Republicans")
     
-        
+    #make it a probability not a total
+    probA = numA/len(training_set)
+    probB = numB/len(training_set)
+    
+    set_entropy = (-probA)*math.log2(probA) + (-probB)*math.log2(probB)
 
+    current_info = 0
+    max_info = 0
+    current_entropy = 0
+    #for each vote listed
+    for i in range(len(training_set[0].votes)):
+        y = 0
+        n = 0
+        other = 0
+        for rep in training_set:
+            #tally votes for this issue
+            if(rep.votes[i] == '+'): y += 1
+            elif(rep.votes[i] == '-'): n += 1
+            else: other += 1
+        #print("For issue ", i, " there were ", y, " +'s, ", n, " -'s and ", other, " abstains")
+        
+        
+        probY = y/len(training_set)
+        probN = n/len(training_set)
+        probOther = other/len(training_set)
+        
+        current_entropy = (-probY)*math.log2(probY) + (-probN)*math.log2(probN) + (-probOther)*math.log2(probOther)
+        current_info = set_entropy - current_entropy
+        
+        #adjust max entropy
+        if(current_entropy > max_entropy): max_entropy = current_entropy
+        
+        
 
 if __name__ == "__main__":
     data = parse_arguments()
