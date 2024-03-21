@@ -64,6 +64,21 @@ def log(num):
         return -0
     else: return math.log(num, 2)
 
+def calculate_entropy(subset):
+    length = len(subset)
+    if length == 0:
+        return 0
+
+    num_D = 0
+    for rep in subset:
+        if rep.label == 'D':
+            num_D += 1
+    num_R = length - num_D
+
+    prob_D = num_D / length
+    prob_R = num_R / length
+    return -(prob_D*log(prob_D) + prob_R*log(prob_R))
+
 def create_decision_tree(training_set):
     numA = 0
     numB = 0
@@ -99,7 +114,7 @@ def create_decision_tree(training_set):
             elif(rep.votes[i] == '-'): nays.append(rep)
             else: others.append(rep)
 
-        print("For issue ", chr(ord('A') + i), " there were ", len(yeas), " +'s, ", len(nays), " -'s and ", len(others), " abstains")
+        #print("For issue ", chr(ord('A') + i), " there were ", len(yeas), " +'s, ", len(nays), " -'s and ", len(others), " abstains")
         
         #find probability of each vote
         probY = len(yeas)/len(training_set)
@@ -107,14 +122,14 @@ def create_decision_tree(training_set):
         probO = len(others)/len(training_set)
         
         #entropy per vote
-        y_entropy = -(probY*log(probY) + (1-probY)*log(1-probY))
-        n_entropy = -(probN*log(probN) + (1-probN)*log(1-probN))
-        o_entropy = -(probO*log(probO) + (1-probO)*log(1-probO))
+        y_entropy = calculate_entropy(yeas)
+        n_entropy = calculate_entropy(nays)
+        o_entropy = calculate_entropy(others)
 
         #total information gain
         info_gain = set_entropy - (probY*y_entropy + probN*n_entropy + probO*o_entropy)
         
-        print("     information gain is ", info_gain)
+        #print("     information gain is ", info_gain)
         
         #adjust max entropy
         if(info_gain > max_info_gain): 
