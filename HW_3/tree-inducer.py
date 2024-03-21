@@ -61,8 +61,8 @@ def split_data(data):
 
 def log(num):
     if(num == 0):
-        return 0
-    else: return math.log2(num)
+        return -0
+    else: return math.log(num, 2)
 
 def create_decision_tree(training_set):
     numA = 0
@@ -81,26 +81,38 @@ def create_decision_tree(training_set):
     info_gain = 0
     max_info_gain = 0
     max_info_index = None
-    current_entropy = 0
+    entropy = 0
+    y_entropy = 0
+    n_entropy = 0
+    o_entropy = 0
     
     #for each vote listed
     for i in range(len(training_set[0].votes)):
-        y = 0
-        n = 0
-        other = 0
+        yeas = []
+        nays = []
+        others = []
+
+        #split up by vote
         for rep in training_set:
             #tally votes for this issue
-            if(rep.votes[i] == '+'): y += 1
-            elif(rep.votes[i] == '-'): n += 1
-            else: other += 1
-        print("For issue ", i, " there were ", y, " +'s, ", n, " -'s and ", other, " abstains")
+            if(rep.votes[i] == '+'): yeas.append(rep)
+            elif(rep.votes[i] == '-'): nays.append(rep)
+            else: others.append(rep)
+
+        print("For issue ", chr(ord('A') + i), " there were ", len(yeas), " +'s, ", len(nays), " -'s and ", len(others), " abstains")
         
-        probY = y/len(training_set)
-        probN = n/len(training_set)
-        probOther = other/len(training_set)
+        #find probability of each vote
+        probY = len(yeas)/len(training_set)
+        probN = len(nays)/len(training_set)
+        probO = len(others)/len(training_set)
         
-        current_entropy = -((probY)*log(probY) + (probN)*log(probN) + (probOther)*log(probOther))
-        info_gain = set_entropy - current_entropy
+        #entropy per vote
+        y_entropy = -(probY*log(probY) + (1-probY)*log(1-probY))
+        n_entropy = -(probN*log(probN) + (1-probN)*log(1-probN))
+        o_entropy = -(probO*log(probO) + (1-probO)*log(1-probO))
+
+        #total information gain
+        info_gain = set_entropy - (probY*y_entropy + probN*n_entropy + probO*o_entropy)
         
         print("     information gain is ", info_gain)
         
@@ -109,7 +121,7 @@ def create_decision_tree(training_set):
             max_info_gain = info_gain
             max_info_index = i
         
-    print("Max information gain is ", max_info_gain, " at issue ", max_info_index)
+    print("Max information gain is ", max_info_gain, " at issue ", chr(ord('A') + max_info_index))
         
         
 
