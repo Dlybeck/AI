@@ -1,16 +1,30 @@
 import sys
 import math
 
-class node:
-    def __init__(self):
-        next_Yea = None #if there is another node for yea, link here
-        yea = None #label for yea if this is a leaf
-        
-        next_Nay = None
-        nay = None
-        
-        next_Other = None
-        other = None
+class Node:
+    def __init__(self, issue=None):
+        self.issue_to_split = issue #issue for this node
+
+        #Children Nodes
+        self.next_Yea = None
+        self.next_Nay = None
+        self.next_Other = None
+
+        #Parent Node
+        self.parent = None
+
+        #if this node is a leaf, R or D?
+        self.classification = None
+
+    def __str__(self):
+        yea_str = 'None' if self.next_Yea is None else str(self.next_Yea)
+        nay_str = 'None' if self.next_Nay is None else str(self.next_Nay)
+        other_str = 'None' if self.next_Other is None else str(self.next_Other)
+
+        if self.issue_to_split is not None:
+            return f'Issue: {self.issue_to_split}\n  Yea: {yea_str}\n  Nay: {nay_str}\n  Other: {other_str}'
+        else:
+            return f'Classification: {self.classification}'
     
 class rep:
     def __init__(self, id, label, votes):
@@ -79,17 +93,50 @@ def calculate_entropy(subset):
     prob_R = num_R / length
     return -(prob_D*log(prob_D) + prob_R*log(prob_R))
 
-def create_decision_tree(training_set):
-    numA = 0
-    numB = 0
+def classify(subset, node):
+    numD = 0
+    for rep in subset:
+        if(rep.label == 'D'): numD = numD + 1
+    numR = len(subset) - numD
+
+    if(numD < numR): node.classification = 'R'
+    elif(numR < numD): node.classification = 'D'
+    else: node.classification = node.parent.classification
+
+
+def create_decision_tree(training_set, checked = set(), parentNode = None):
+    numD = 0
+    numR = 0
     for rep in training_set:
-        if(rep.label == 'D'): numA += 1
-        else: numB += 1
-    #print("There are ", numA, " Democrats and ", numB, " Republicans")
+        if(rep.label == 'D'): numD += 1
+        else: numR += 1
+    #print("There are ", numD, " Democrats and ", numR, " Republicans")
+
+    #Base Case
+    if(len(checked) == len(training_set[0].votes)):
+        print("Out of issues")
+        node = Node()
+        classify(training_set, node)
+        node.parent = parentNode
+        return node
+    if(numD == 0):
+        print("Only R's")
+        node = Node()
+        node.classification = 'R'
+        node.parent = parentNode
+        return node
+    if(numR == 0):
+        print("Only D's")
+        node = Node()
+        node.classification = 'D'
+        node.parent = parentNode
+        return node
+
+
     
     #make it a probability not a total
-    probA = numA/len(training_set)
-    probB = numB/len(training_set)
+    probA = numD/len(training_set)
+    probB = numR/len(training_set)
     
     set_entropy = -((probA)*log(probA) + (probB)*log(probB))
 
@@ -103,6 +150,9 @@ def create_decision_tree(training_set):
     
     #for each vote listed
     for i in range(len(training_set[0].votes)):
+        #Skip if this issue has already been explored
+        if(i in checked): continue
+        
         yeas = []
         nays = []
         others = []
@@ -136,12 +186,28 @@ def create_decision_tree(training_set):
             max_info_gain = info_gain
             max_info_index = i
         
-    print("Max information gain is ", max_info_gain, " at issue ", chr(ord('A') + max_info_index))
-        
+    
+    if(max_info_index != None): 
+        checked.add(max_info_index)
+        print("Max information gain is ", max_info_gain, " at issue ", chr(ord('A') + max_info_index))
+
+    #Recurse
+    node = Node(max_info_index)
+    classify(training_set, node)
+    node.parentNode = parentNode
+
+    node.next_Yea = create_decision_tree(yeas, checked, node)
+    node.next_Nay = create_decision_tree(nays, checked, node)
+    node.next_Other = create_decision_tree(others, checked, node)
+
+    return node
         
 
 if __name__ == "__main__":
     data = parse_arguments()
     training_set, tuning_set = split_data(data)
-    create_decision_tree(training_set)
+    tree = create_decision_tree(training_set)
+
+    print(tree)
+
     
