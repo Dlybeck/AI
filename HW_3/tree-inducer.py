@@ -15,17 +15,27 @@ class Node:
 
         #if this node is a leaf, R or D?
         self.classification = None
-
-    def __str__(self):
-        yea_str = 'None' if self.next_Yea is None else str(self.next_Yea)
-        nay_str = 'None' if self.next_Nay is None else str(self.next_Nay)
-        other_str = 'None' if self.next_Other is None else str(self.next_Other)
-
-        if self.issue_to_split is not None:
-            return f'Issue: {self.issue_to_split}\n  Yea: {yea_str}\n  Nay: {nay_str}\n  Other: {other_str}'
-        else:
-            return f'Classification: {self.classification}'
     
+    def print_node(self, level=0):
+        if self.issue_to_split is not None:
+            print("Issue "+chr(ord('A')+self.issue_to_split)+":")
+        else:
+            print(self.classification)
+            return
+
+        level = level + 1
+        indent = " " * level * 2
+
+        if self.next_Yea is not None:
+            print(f"{indent}+", end=" ")
+            self.next_Yea.print_node(level)
+        if self.next_Nay is not None:
+            print(f"{indent}-", end=" ")
+            self.next_Nay.print_node(level)
+        if self.next_Other is not None:
+            print(f"{indent}.", end=" ")
+            self.next_Other.print_node(level)
+ 
 class rep:
     def __init__(self, id, label, votes):
         self.id = id
@@ -59,6 +69,8 @@ def parse_arguments():
     for i in range(len(repStrings)):
         #Split up string into parts
         info = repStrings[i].split()
+        global num_issues
+        num_issues = len(info[2])
         reps[i] = rep(info[0], info[1], info[2])
         #print(reps[i])
     
@@ -94,120 +106,122 @@ def calculate_entropy(subset):
     return -(prob_D*log(prob_D) + prob_R*log(prob_R))
 
 def classify(subset, node):
-    numD = 0
+    num_D = 0
     for rep in subset:
-        if(rep.label == 'D'): numD = numD + 1
-    numR = len(subset) - numD
+        if rep.label == 'D':
+            num_D += 1
 
-    if(numD < numR): node.classification = 'R'
-    elif(numR < numD): node.classification = 'D'
-    else: node.classification = node.parent.classification
+    num_R = len(subset) - num_D
+
+    if num_D > num_R:
+        node.classification = 'D'
+    elif num_R > num_D:
+        node.classification = 'R'
+    else:
+        node.classification = node.parent.classification
 
 
-def create_decision_tree(training_set, checked = set(), parentNode = None):
-    numD = 0
-    numR = 0
+def create_decision_tree(training_set, checked=set(), parent_node=None):
+    #Count the D's and R's in this set
+    num_D = 0
     for rep in training_set:
-        if(rep.label == 'D'): numD += 1
-        else: numR += 1
-    #print("There are ", numD, " Democrats and ", numR, " Republicans")
+        if rep.label == 'D':
+            num_D += 1
+    num_R = len(training_set) - num_D
 
     #Base Case
-    if(len(checked) == len(training_set[0].votes)):
-        print("Out of issues")
+    if (len(checked) == num_issues): #Loops thorugh and classifies based on parent if needed
         node = Node()
+        node.parent = parent_node
         classify(training_set, node)
-        node.parent = parentNode
         return node
-    if(numD == 0):
-        print("Only R's")
+    elif(num_D == 0 or num_R == 0): #Doesn't loop through and classify when it already knows
         node = Node()
-        node.classification = 'R'
-        node.parent = parentNode
+        node.parent = parent_node
+        if(num_D == 0): node.classification = 'R'
+        else: node.classification = 'D'
         return node
-    if(numR == 0):
-        print("Only D's")
-        node = Node()
-        node.classification = 'D'
-        node.parent = parentNode
-        return node
+         
+    #Entropy of entire set
+    set_entropy = calculate_entropy(training_set)
 
-
-    
-    #make it a probability not a total
-    probA = numD/len(training_set)
-    probB = numR/len(training_set)
-    
-    set_entropy = -((probA)*log(probA) + (probB)*log(probB))
-
-    info_gain = 0
     max_info_gain = 0
     max_info_index = None
-    entropy = 0
-    y_entropy = 0
-    n_entropy = 0
-    o_entropy = 0
-    
-    #for each vote listed
-    for i in range(len(training_set[0].votes)):
-        #Skip if this issue has already been explored
-        if(i in checked): continue
-        
-        yeas = []
-        nays = []
-        others = []
 
-        #split up by vote
-        for rep in training_set:
-            #tally votes for this issue
-            if(rep.votes[i] == '+'): yeas.append(rep)
-            elif(rep.votes[i] == '-'): nays.append(rep)
-            else: others.append(rep)
+    #Check information gain for each issue
+    for i in range(num_issues):
+        #Skip issue if already used to split data
+        if i in checked:
+            continue
 
-        #print("For issue ", chr(ord('A') + i), " there were ", len(yeas), " +'s, ", len(nays), " -'s and ", len(others), " abstains")
-        
-        #find probability of each vote
-        probY = len(yeas)/len(training_set)
-        probN = len(nays)/len(training_set)
-        probO = len(others)/len(training_set)
-        
-        #entropy per vote
-        y_entropy = calculate_entropy(yeas)
-        n_entropy = calculate_entropy(nays)
-        o_entropy = calculate_entropy(others)
+        yeas, nays, others = split_by_vote(training_set, i)
 
-        #total information gain
-        info_gain = set_entropy - (probY*y_entropy + probN*n_entropy + probO*o_entropy)
-        
-        #print("     information gain is ", info_gain)
-        
-        #adjust max entropy
-        if(info_gain > max_info_gain): 
+        info_gain = set_entropy - (
+                len(yeas) / len(training_set) * calculate_entropy(yeas) +
+                len(nays) / len(training_set) * calculate_entropy(nays) +
+                len(others) / len(training_set) * calculate_entropy(others)
+        )
+
+        #update info if a better split is found
+        if (info_gain > max_info_gain):
             max_info_gain = info_gain
             max_info_index = i
-        
-    
-    if(max_info_index != None): 
-        checked.add(max_info_index)
-        print("Max information gain is ", max_info_gain, " at issue ", chr(ord('A') + max_info_index))
 
-    #Recurse
+    checked.add(max_info_index)
     node = Node(max_info_index)
+    node.parent = parent_node
     classify(training_set, node)
-    node.parentNode = parentNode
 
-    node.next_Yea = create_decision_tree(yeas, checked, node)
-    node.next_Nay = create_decision_tree(nays, checked, node)
-    node.next_Other = create_decision_tree(others, checked, node)
+    #If there is an issue left to split
+    if max_info_index is not None:
+        #Create a subset for each vote
+        yeas, nays, others = split_by_vote(training_set, max_info_index)
+        #Recurse
+        node.next_Yea = create_decision_tree(yeas, checked.copy(), node)
+        node.next_Nay = create_decision_tree(nays, checked.copy(), node)
+        node.next_Other = create_decision_tree(others, checked.copy(), node)
 
     return node
+
+def calculate_entropy(subset):
+    num_D = sum(1 for rep in subset if rep.label == 'D')
+    num_R = len(subset) - num_D
+    total = len(subset)
+
+    #if subset is empty 0 entropy
+    if total == 0:
+        return 0
+
+    prob_D = num_D / total
+    prob_R = num_R / total
+
+    #if all R or D 0 entropy
+    if prob_D == 0 or prob_R == 0:
+        return 0
+
+    #Return Entropy
+    return -(prob_D * log(prob_D) + prob_R * log(prob_R))
+
+def split_by_vote(subset, index):
+    yeas = []
+    nays = []
+    others = []
+
+    for rep in subset:
+        if(rep.votes[index] == '+'):
+            yeas.append(rep)
+        elif (rep.votes[index] == '-'):
+            nays.append(rep)
+        else:
+            others.append(rep)
+
+    return yeas, nays, others
         
 
 if __name__ == "__main__":
     data = parse_arguments()
     training_set, tuning_set = split_data(data)
     tree = create_decision_tree(training_set)
-
-    print(tree)
+    tree.print_node()
 
     
