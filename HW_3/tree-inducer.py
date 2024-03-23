@@ -9,6 +9,7 @@ class Node:
         self.next_Yea = None
         self.next_Nay = None
         self.next_Other = None
+        self.pruned = False
 
         #Parent Node
         self.parent = None
@@ -120,7 +121,6 @@ def classify(subset, node):
     else:
         node.classification = node.parent.classification
 
-
 def create_decision_tree(training_set, checked=set(), parent_node=None):
     #Count the D's and R's in this set
     num_D = 0
@@ -218,8 +218,12 @@ def split_by_vote(subset, index):
     return yeas, nays, others
 
 def predict(rep, node):
-    if (node.issue_to_split == None): return node.classification
+    #base case
+    if (node.issue_to_split == None or node.pruned): return node.classification
+
     vote = rep.votes[node.issue_to_split]
+
+    #Recurse
     if (vote == '+'): return predict(rep, node.next_Yea)
     elif (vote == '-'): return predict(rep, node.next_Nay)
     else: return predict(rep, node.next_Other)
@@ -232,6 +236,63 @@ def test_accuracy(tree, tuning_set):
             correct += 1
     return correct / len(tuning_set)
 
+#mark nodes to trim
+def traverse_bottom_up(tree, tuning_set, accuracy, node=None):
+    if(node == None): node = tree
+
+    if (node.issue_to_split == None):
+        return
+
+    # Traverse the left subtree
+    if node.next_Yea is not None:
+        traverse_bottom_up(tree, tuning_set, accuracy, node.next_Yea)
+
+    # Traverse the middle subtree
+    if node.next_Nay is not None:
+        traverse_bottom_up(tree, tuning_set, accuracy, node.next_Nay)
+
+    # Traverse the right subtree
+    if node.next_Other is not None:
+        traverse_bottom_up(tree, tuning_set, accuracy, node.next_Other)
+
+    node.pruned = True
+    new_accuracy = test_accuracy(tree, tuning_set)
+    if(new_accuracy < accuracy):
+        node.pruned = False
+    else: node.parent.issue_to_split = None
+
+#Remove all the nodes marked to be pruned
+def trim(node):
+    if node is None or node.issue_to_split is None:
+        return
+
+    # Traverse the subtrees
+    trim(node.next_Yea)
+    trim(node.next_Nay)
+    trim(node.next_Other)
+
+    # Check if the current node needs to be pruned
+    if node.pruned:
+        if node.parent is not None:
+            if node.parent.next_Yea == node:
+                node.parent.next_Yea = None
+            elif node.parent.next_Nay == node:
+                node.parent.next_Nay = None
+            elif node.parent.next_Other == node:
+                node.parent.next_Other = None
+        
+
+def prune (tree, tuning_set):
+    # Calculate initial accuracy
+    accuracy = test_accuracy(tree, tuning_set)
+    
+    # Mark nodes for pruning
+    traverse_bottom_up(tree, tuning_set, accuracy)
+    
+    # Trim pruned nodes
+    trim(tree)
+
+
 if __name__ == "__main__":
     data = parse_arguments()
     training_set, tuning_set = split_data(data)
@@ -240,5 +301,14 @@ if __name__ == "__main__":
 
     accuracy = test_accuracy(tree, tuning_set)
     print("Accuracy of the decision tree: ", accuracy)
+
+    # Prune the tree
+    prune(tree, tuning_set)
+
+    # Print pruned tree
+    tree.print_node()
+
+    accuracy = test_accuracy(tree, tuning_set)
+    print("Accuracy of the decision tree after pruning: ", accuracy)
 
     
