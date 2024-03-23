@@ -216,12 +216,29 @@ def split_by_vote(subset, index):
             others.append(rep)
 
     return yeas, nays, others
-        
+
+def predict(rep, node):
+    if (node.issue_to_split == None): return node.classification
+    vote = rep.votes[node.issue_to_split]
+    if (vote == '+'): return predict(rep, node.next_Yea)
+    elif (vote == '-'): return predict(rep, node.next_Nay)
+    else: return predict(rep, node.next_Other)
+
+def test_accuracy(tree, tuning_set):
+    correct = 0
+    for rep in tuning_set:
+        prediction = predict(rep, tree)
+        if (prediction == rep.label):
+            correct += 1
+    return correct / len(tuning_set)
 
 if __name__ == "__main__":
     data = parse_arguments()
     training_set, tuning_set = split_data(data)
     tree = create_decision_tree(training_set)
     tree.print_node()
+
+    accuracy = test_accuracy(tree, tuning_set)
+    print("Accuracy of the decision tree: ", accuracy)
 
     
