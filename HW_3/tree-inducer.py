@@ -273,13 +273,13 @@ def reduced_error_pruning(tree, tuning_set, current_node=None, best_node=None, b
           
 #Remove all the nodes marked to be pruned
 def trim(node):
-    if node.parent is not None:
-        if node.parent.next_Yea == node:
-            node.parent.next_Yea = None
-        elif node.parent.next_Nay == node:
-            node.parent.next_Nay = None
-        elif node.parent.next_Other == node:
-            node.parent.next_Other = None
+    if node is not None:
+        if node.next_Yea == node:
+            node.next_Yea = None
+        elif node.next_Nay == node:
+            node.next_Nay = None
+        elif node.next_Other == node:
+            node.next_Other = None
 
     # Set the node to be a leaf node with the most common classification in the tuning set
     node.issue_to_split = None
@@ -289,23 +289,52 @@ def trim(node):
 def prune (tree, tuning_set):
     # Calculate initial accuracy
     accuracy = test_accuracy(tree, tuning_set)
-    print("Accuracy ", accuracy)
+    #print("Accuracy ", accuracy)
 
     run = True
     # Mark nodes for pruning
     while(run):
         node_to_trim, new_accuracy = reduced_error_pruning(tree, tuning_set)
-        if(new_accuracy >= accuracy):
+        if(new_accuracy >= accuracy and node_to_trim.parent is not None):
+            print("Removing node after ", chr(ord('A')+node_to_trim.parent.issue_to_split))
             node_to_trim.parent.issue_to_split = None
-            print("Trimming to accuracy ", new_accuracy)
+            #print("Trimming to accuracy ", new_accuracy)
             trim(node_to_trim)
             tree.print_node()
-            print("Trimmed to accuracy ", test_accuracy(tree, tuning_set), "\n")
+            #print("Trimmed to accuracy ", test_accuracy(tree, tuning_set), "\n")
         else:
             run = False
     
+def LOOCV (data):
+    #set is data missing one data point
+    set = [None]*(len(data)-1)
+    correct = 0
 
+    #loop through each node to skip
+    for i in range(len(data)):
+        rep = None
+        offset = 0
+        #create a set with all but 1 point
+        for j in range(len(data)):
+            #skip this data point
+            if(j == i): 
+                #print("skipping rep ", data[j])
+                rep = data[j]
+                offset = 1
+                continue
 
+            set[j-offset] = data[j]
+
+        training_set, tuning_set = split_data(set)
+        tree = create_decision_tree(training_set)
+        prune(tree, tuning_set)
+
+        prediction = predict(rep, tree)
+        if(prediction == rep.label): correct = correct + 1
+    
+    return correct/len(data)
+
+        
 if __name__ == "__main__":
     data = parse_arguments()
     training_set, tuning_set = split_data(data)
@@ -318,10 +347,16 @@ if __name__ == "__main__":
     # Prune the tree
     prune(tree, tuning_set)
 
-    # Print pruned tree
+    #Print pruned tree
     tree.print_node()
 
-    accuracy = test_accuracy(tree, tuning_set)
+    accuracy = test_accuracy(tree, data)
     print("Accuracy of the decision tree after pruning: ", accuracy)
+
+    # accuracy = LOOCV(data)
+
+    # print("LOOCV accuracy is: ", accuracy)
+
+
 
     
