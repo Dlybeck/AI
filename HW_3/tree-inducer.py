@@ -297,11 +297,12 @@ def prune (tree, tuning_set):
         node_to_trim, new_accuracy = reduced_error_pruning(tree, tuning_set)
         if(new_accuracy >= accuracy and node_to_trim.parent is not None):
             print("Removing node after ", chr(ord('A')+node_to_trim.parent.issue_to_split))
-            node_to_trim.parent.issue_to_split = None
-            #print("Trimming to accuracy ", new_accuracy)
+            node_to_trim.issue_to_split = None
+            print("Trimming to accuracy ", new_accuracy)
             trim(node_to_trim)
             tree.print_node()
-            #print("Trimmed to accuracy ", test_accuracy(tree, tuning_set), "\n")
+            print("Trimmed to accuracy ", test_accuracy(tree, tuning_set), "\n")
+            new_accuracy = accuracy
         else:
             run = False
     
