@@ -18,11 +18,12 @@ class Node:
         self.classification = None
     
     def print_node(self, level=0):
-        if self.issue_to_split is not None:
+        if self.issue_to_split is not None or self.pruned:
             print("Issue "+chr(ord('A')+self.issue_to_split)+":")
         else:
             print(self.classification)
             return
+        
 
         level = level + 1
         indent = " " * level * 2
@@ -237,60 +238,72 @@ def test_accuracy(tree, tuning_set):
     return correct / len(tuning_set)
 
 #mark nodes to trim
-def traverse_bottom_up(tree, tuning_set, accuracy, node=None):
-    if(node == None): node = tree
+def reduced_error_pruning(tree, tuning_set, current_node=None, best_node=None, best_accuracy=-1):
+    if current_node is None:
+        current_node = tree
 
-    if (node.issue_to_split == None):
-        return
+    if current_node.issue_to_split is None:
+        return best_node, best_accuracy
 
-    # Traverse the left subtree
-    if node.next_Yea is not None:
-        traverse_bottom_up(tree, tuning_set, accuracy, node.next_Yea)
+    # Mark the current node and its children as pruned
+    current_node.pruned = True
 
-    # Traverse the middle subtree
-    if node.next_Nay is not None:
-        traverse_bottom_up(tree, tuning_set, accuracy, node.next_Nay)
-
-    # Traverse the right subtree
-    if node.next_Other is not None:
-        traverse_bottom_up(tree, tuning_set, accuracy, node.next_Other)
-
-    node.pruned = True
     new_accuracy = test_accuracy(tree, tuning_set)
-    if(new_accuracy < accuracy):
-        node.pruned = False
-    else: node.parent.issue_to_split = None
 
+    # Unmark the current node and its children as pruned
+    current_node.pruned = False
+
+    if new_accuracy >= best_accuracy:
+        best_node = current_node
+        best_accuracy = new_accuracy
+        print("New best accuracy is ", best_accuracy)
+
+    # Recurse on the children of the current node
+    if current_node.next_Yea is not None:
+        best_node, best_accuracy = reduced_error_pruning(tree, tuning_set, current_node.next_Yea, best_node, best_accuracy)
+
+    if current_node.next_Nay is not None:
+        best_node, best_accuracy = reduced_error_pruning(tree, tuning_set, current_node.next_Nay, best_node, best_accuracy)
+
+    if current_node.next_Other is not None:
+        best_node, best_accuracy = reduced_error_pruning(tree, tuning_set, current_node.next_Other, best_node, best_accuracy)
+
+    return best_node, best_accuracy
+
+          
 #Remove all the nodes marked to be pruned
 def trim(node):
-    if node is None or node.issue_to_split is None:
-        return
+    if node.parent is not None:
+        if node.parent.next_Yea == node:
+            node.parent.next_Yea = None
+        elif node.parent.next_Nay == node:
+            node.parent.next_Nay = None
+        elif node.parent.next_Other == node:
+            node.parent.next_Other = None
 
-    # Traverse the subtrees
-    trim(node.next_Yea)
-    trim(node.next_Nay)
-    trim(node.next_Other)
+    # Set the node to be a leaf node with the most common classification in the tuning set
+    node.issue_to_split = None
 
-    # Check if the current node needs to be pruned
-    if node.pruned:
-        if node.parent is not None:
-            if node.parent.next_Yea == node:
-                node.parent.next_Yea = None
-            elif node.parent.next_Nay == node:
-                node.parent.next_Nay = None
-            elif node.parent.next_Other == node:
-                node.parent.next_Other = None
         
 
 def prune (tree, tuning_set):
     # Calculate initial accuracy
     accuracy = test_accuracy(tree, tuning_set)
-    
+    print("Accuracy ", accuracy)
+
+    run = True
     # Mark nodes for pruning
-    traverse_bottom_up(tree, tuning_set, accuracy)
+    while(run):
+        node_to_trim, new_accuracy = reduced_error_pruning(tree, tuning_set)
+        if(new_accuracy >= accuracy):
+            node_to_trim.parent.issue_to_split = None
+            print("Trimming to accuracy ", new_accuracy)
+            trim(node_to_trim)
+            tree.print_node()
+            print("Trimmed to accuracy ", test_accuracy(tree, tuning_set), "\n")
+        else:
+            run = False
     
-    # Trim pruned nodes
-    trim(tree)
 
 
 if __name__ == "__main__":
