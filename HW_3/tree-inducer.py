@@ -221,9 +221,6 @@ def create_decision_tree(training_set, checked, parent_node=None):
 
     checked.add(max_info_index) #mark that this issue is already been looked at
     node = Node(max_info_index)
-    node.yeas = len(yeas)
-    node.nays = len(nays)
-    node.others = len(others)
     node.parent = parent_node
     classify(training_set, node)
 
