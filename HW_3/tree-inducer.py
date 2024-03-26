@@ -1,7 +1,22 @@
 import sys
 import math
+'''
+This Program takes a file with representatives and their voting history.
+It then creates a decision tree which can be used for future classification. 
+It also has an accuracy check using leave one out validation
 
+Author: David Lybeck
+Date: 3/25/24
+'''
+
+'''
+Node class represents one node in a decion tree, it can take in issue that it uses to split the data by
+if no issue is given it just assumes it is a leaf
+'''
 class Node:
+    '''
+    Node constructor
+    '''
     def __init__(self, issue=None):
         self.issue_to_split = issue #issue for this node
 
@@ -11,17 +26,15 @@ class Node:
         self.next_Other = None
         self.pruned = False
 
-
-        self.yeas = None
-        self.nays = None
-        self.others = None
-
         #Parent Node
         self.parent = None
 
         #if this node is a leaf, R or D?
         self.classification = None
     
+    '''
+    Prints the node and all of its children in a tree format
+    '''
     def print_node(self, level=0):
         if self.issue_to_split is not None or self.pruned:
             print("Issue "+chr(ord('A')+self.issue_to_split)+":")
@@ -43,6 +56,10 @@ class Node:
             print(f"{indent}.", end=" ")
             self.next_Other.print_node(level)
  
+'''
+This class is used to hold all of a representatives data such as their id, what their label is
+and their voting history
+'''
 class rep:
     def __init__(self, id, label, votes):
         self.id = id
@@ -52,6 +69,11 @@ class rep:
     def __str__ (self):
         return self.id + " "+ self.label + " " + self.votes
   
+'''
+Parses through the arguments given from the command line and turns the given data into a list of reps
+
+Return: a list of reps
+'''
 def parse_arguments():    
     if (len(sys.argv) > 2):
         print("Too many arguments given");
@@ -78,6 +100,11 @@ def parse_arguments():
 
     return reps
     
+'''
+Splits a list of reps into a tuning set and a training set
+
+Returns: Training set, Tuning set
+'''
 def split_data(data):
     tuning_set = []
     training_set = []
@@ -87,26 +114,44 @@ def split_data(data):
         
     return training_set, tuning_set
 
+'''
+This is used to repace math.log2. The only difference is that the log of 0 is set to be 0
+
+Returns: answer to log
+'''
 def log(num):
     if(num == 0):
         return -0
     else: return math.log(num, 2)
 
+'''
+Calculates the entropy of a given set
+Returns: entropy as num
+'''
 def calculate_entropy(subset):
-    length = len(subset)
-    if length == 0:
+    num_D = sum(1 for rep in subset if rep.label == 'D')
+    num_R = len(subset) - num_D
+    total = len(subset)
+
+    #if subset is empty 0 entropy
+    if total == 0:
         return 0
 
-    num_D = 0
-    for rep in subset:
-        if rep.label == 'D':
-            num_D += 1
-    num_R = length - num_D
+    prob_D = num_D / total
+    prob_R = num_R / total
 
-    prob_D = num_D / length
-    prob_R = num_R / length
-    return -(prob_D*log(prob_D) + prob_R*log(prob_R))
+    #if all R or D 0 entropy
+    if prob_D == 0 or prob_R == 0:
+        return 0
 
+    #Return Entropy
+    return -(prob_D * log(prob_D) + prob_R * log(prob_R))
+
+
+
+'''
+Classifies a list of data based on the majority, or parent classification if it is tied
+'''
 def classify(subset, node):
     num_D = 0
     for rep in subset:
@@ -122,6 +167,11 @@ def classify(subset, node):
     else:
         node.classification = node.parent.classification
 
+
+'''
+Creates a decision tree given a training set and a set() to keep track of checked issues
+Return: the root node of the tree
+'''
 def create_decision_tree(training_set, checked, parent_node=None):
     #Count the D's and R's in this set
     num_D = 0
@@ -188,25 +238,10 @@ def create_decision_tree(training_set, checked, parent_node=None):
 
     return node
 
-def calculate_entropy(subset):
-    num_D = sum(1 for rep in subset if rep.label == 'D')
-    num_R = len(subset) - num_D
-    total = len(subset)
-
-    #if subset is empty 0 entropy
-    if total == 0:
-        return 0
-
-    prob_D = num_D / total
-    prob_R = num_R / total
-
-    #if all R or D 0 entropy
-    if prob_D == 0 or prob_R == 0:
-        return 0
-
-    #Return Entropy
-    return -(prob_D * log(prob_D) + prob_R * log(prob_R))
-
+'''
+Takes a set of reps and splits it into set of yeas nays and others
+Resturn: List of yeas, list of nays, list of others
+'''
 def split_by_vote(subset, index):
     yeas = []
     nays = []
@@ -222,6 +257,9 @@ def split_by_vote(subset, index):
 
     return yeas, nays, others
 
+'''
+Predict the outcome of a given rep with a given decision tree
+'''
 def predict(rep, node):
     #base case
     if (node.issue_to_split == None or node.pruned): return node.classification
@@ -233,6 +271,9 @@ def predict(rep, node):
     elif (vote == '-'): return predict(rep, node.next_Nay)
     else: return predict(rep, node.next_Other)
 
+'''
+Tests the accuracy of a tree using its tuning set as new data
+'''
 def test_accuracy(tree, tuning_set):
     correct = 0
     for rep in tuning_set:
@@ -241,7 +282,10 @@ def test_accuracy(tree, tuning_set):
             correct += 1
     return correct / len(tuning_set)
 
-#mark nodes to trim
+'''
+Takes a tree and a tuning set, and finds the best node to potentially prune
+Return: Node, Accuracy
+'''
 def reduced_error_pruning(tree, tuning_set, current_node=None, best_node=None, best_accuracy=-1):
     if current_node is None:
         current_node = tree
@@ -272,7 +316,9 @@ def reduced_error_pruning(tree, tuning_set, current_node=None, best_node=None, b
 
     return best_node, best_accuracy
           
-#Remove all the nodes marked to be pruned
+'''
+Remove all the modes marked to be pruned
+'''
 def trim(node):
     #Remove Children
     node.next_Yea = None
@@ -282,6 +328,9 @@ def trim(node):
     #Set this node to be a leaf node
     node.issue_to_split = None
 
+'''
+Given a tree and a tuning set, find if there are any nodes to prune off the tree and then remove
+'''
 def prune (tree, tuning_set):
     # Calculate initial accuracy
     accuracy = test_accuracy(tree, tuning_set)
@@ -299,12 +348,20 @@ def prune (tree, tuning_set):
         else:
             run = False
 
+'''
+Create a decision tree with the given data
+Return: Root node of pruned tree
+'''
 def make_Tree (data):
     training_set, tuning_set = split_data(data)
     tree = create_decision_tree(training_set, set())
     prune(tree, tuning_set)
     return tree
-        
+
+'''
+Given a set of data create a tree and use leave one out cross validation to find the overall accuracy
+Return: Accuracy of decision tree
+''' 
 def LOOCV(data):
     correct = 0
     for i in range(len(data)):
@@ -323,6 +380,9 @@ def LOOCV(data):
     # Return the accuracy
     return correct / len(data)
 
+'''
+Main method
+'''
 if __name__ == "__main__":
     data = parse_arguments()
     
