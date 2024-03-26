@@ -11,6 +11,11 @@ class Node:
         self.next_Other = None
         self.pruned = False
 
+
+        self.yeas = None
+        self.nays = None
+        self.others = None
+
         #Parent Node
         self.parent = None
 
@@ -70,7 +75,7 @@ def parse_arguments():
         global num_issues
         num_issues = len(info[2])
         reps[i] = rep(info[0], info[1], info[2])
-            
+
     return reps
     
 def split_data(data):
@@ -117,7 +122,7 @@ def classify(subset, node):
     else:
         node.classification = node.parent.classification
 
-def create_decision_tree(training_set, checked=set(), parent_node=None):
+def create_decision_tree(training_set, checked, parent_node=None):
     #Count the D's and R's in this set
     num_D = 0
     for rep in training_set:
@@ -150,12 +155,13 @@ def create_decision_tree(training_set, checked=set(), parent_node=None):
         if i in checked:
             continue
 
+        #split by issue i
         yeas, nays, others = split_by_vote(training_set, i)
 
         info_gain = set_entropy - (
-                len(yeas) / len(training_set) * calculate_entropy(yeas) +
-                len(nays) / len(training_set) * calculate_entropy(nays) +
-                len(others) / len(training_set) * calculate_entropy(others)
+            len(yeas) / len(training_set) * calculate_entropy(yeas) +
+            len(nays) / len(training_set) * calculate_entropy(nays) +
+            len(others) / len(training_set) * calculate_entropy(others)
         )
 
         #update info if a better split is found
@@ -163,8 +169,11 @@ def create_decision_tree(training_set, checked=set(), parent_node=None):
             max_info_gain = info_gain
             max_info_index = i
 
-    checked.add(max_info_index)
+    checked.add(max_info_index) #mark that this issue is already been looked at
     node = Node(max_info_index)
+    node.yeas = len(yeas)
+    node.nays = len(nays)
+    node.others = len(others)
     node.parent = parent_node
     classify(training_set, node)
 
@@ -240,14 +249,15 @@ def reduced_error_pruning(tree, tuning_set, current_node=None, best_node=None, b
     if current_node.issue_to_split is None:
         return best_node, best_accuracy
 
-    # Mark the current node and its children as pruned
+    #Mark the current node and its children as pruned
     current_node.pruned = True
 
     new_accuracy = test_accuracy(tree, tuning_set)
 
-    # Unmark the current node and its children as pruned
+    #Unmark the current node and its children as pruned
     current_node.pruned = False
 
+    #Check to see if this is the best node to prune
     if new_accuracy >= best_accuracy:
         best_node = current_node
         best_accuracy = new_accuracy
@@ -255,98 +265,75 @@ def reduced_error_pruning(tree, tuning_set, current_node=None, best_node=None, b
     # Recurse on the children of the current node
     if current_node.next_Yea is not None:
         best_node, best_accuracy = reduced_error_pruning(tree, tuning_set, current_node.next_Yea, best_node, best_accuracy)
-
     if current_node.next_Nay is not None:
         best_node, best_accuracy = reduced_error_pruning(tree, tuning_set, current_node.next_Nay, best_node, best_accuracy)
-
     if current_node.next_Other is not None:
         best_node, best_accuracy = reduced_error_pruning(tree, tuning_set, current_node.next_Other, best_node, best_accuracy)
 
     return best_node, best_accuracy
-
           
 #Remove all the nodes marked to be pruned
 def trim(node):
-    if node is not None:
-        if node.next_Yea == node:
-            node.next_Yea = None
-        elif node.next_Nay == node:
-            node.next_Nay = None
-        elif node.next_Other == node:
-            node.next_Other = None
+    #Remove Children
+    node.next_Yea = None
+    node.next_Nay = None
+    node.next_Other = None
 
-    # Set the node to be a leaf node with the most common classification in the tuning set
+    #Set this node to be a leaf node
     node.issue_to_split = None
-
-        
 
 def prune (tree, tuning_set):
     # Calculate initial accuracy
     accuracy = test_accuracy(tree, tuning_set)
 
     run = True
-    # Mark nodes for pruning
     while(run):
+        #Find the best possible node to trim
         node_to_trim, new_accuracy = reduced_error_pruning(tree, tuning_set)
+        #If this best option is an improvement, prune it
         if(new_accuracy >= accuracy and node_to_trim.parent is not None):
             node_to_trim.issue_to_split = None
             trim(node_to_trim)
             new_accuracy = accuracy
+        #otherwise quit
         else:
             run = False
 
 def make_Tree (data):
     training_set, tuning_set = split_data(data)
-    tree = create_decision_tree(training_set)
-    tree.print_node()
-
-    # Prune the tree
+    tree = create_decision_tree(training_set, set())
     prune(tree, tuning_set)
-
     return tree
-
-def LOOCV (data):
-    #set is data missing one data point
-    correct = 0
-
-    #loop through creating a set missing 1 rep for every rep
-    for i in range(len(data)):
-        set = [None]*(len(data)-1)
-        rep = None
-        offset = 0
-        #create a set with all but 1 point
-        for j in range(len(data)):
-            #skip this data point
-            if(j == i): 
-                rep = data[j]
-                offset = 1
-                continue
-
-            set[j-offset] = data[j]
-
-        tree = make_Tree(set)
-
-        prediction = predict(rep, tree)
-        if(prediction == rep.label): correct = correct + 1
-    
-    return correct/len(data)
-
         
+def LOOCV(data):
+    correct = 0
+    for i in range(len(data)):
+        #create training set without element i in data
+        training_set = data[:i] + data[i+1:]
+
+        tree = make_Tree(training_set)
+
+        #Predict the result of the skipped data
+        prediction = predict(data[i], tree)
+
+        #Count correct predections
+        if prediction == data[i].label:
+            correct += 1
+
+    # Return the accuracy
+    return correct / len(data)
+
 if __name__ == "__main__":
     data = parse_arguments()
     
     tree = make_Tree(data)
 
     #Print pruned tree
-    #tree.print_node()
+    tree.print_node()
 
     #accuracy = test_accuracy(tree, data)
     #print("Accuracy of the decision tree after pruning: ", accuracy)
 
     accuracy = LOOCV(data)
 
-    print("LOOCV accuracy is: ", accuracy)
-
-
-
-    
+    print("Accuracy is: ", accuracy)
