@@ -1,30 +1,35 @@
-import tensorflow as tf
-import cv2
+import os
+import sys
 import numpy as np
+from tensorflow import keras
 
-# Load the trained model
-model = tf.keras.models.load_model("cat_dog_model.h5")
+def classify_images(model_path, images_paths):
+    # Load the pre-trained model
+    model = keras.models.load_model(model_path)
 
-# Read the image to be tested
-image = cv2.imread("test_image.jpg")
+    # Preprocess the images
+    images = []
+    for img_path in images_paths:
+        img = keras.preprocessing.image.load_img(img_path, target_size=(100, 100))
+        img_array = keras.preprocessing.image.img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0)
+        images.append(img_array)
 
-# Resize the image to the input shape of the model
-image = cv2.resize(image, (150, 150))
+    # Make predictions
+    for img_path, img_array in zip(images_paths, images):
+        prediction = model.predict(img_array)[0][0]
+        if prediction < 0.5:
+            class_name = 'cat'
+        else:
+            class_name = 'dog'
+        print(f"{os.path.basename(img_path)}: {class_name}")
 
-# Convert the image to a numpy array and add an additional dimension
-image = np.expand_dims(image, axis=0)
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print("Usage: python classify.py <model_path> <image1.jpg> <image2.jpg> ...")
+        sys.exit(1)
 
-# Normalize the image
-image = image / 255.0
+    model_path = sys.argv[1]
+    images_paths = sys.argv[2:]
 
-# Make a prediction
-predictions = model.predict(image)
-
-# Get the class with the highest probability
-class_index = np.argmax(predictions[0])
-
-# Define the classes
-classes = ["cat", "dog"]
-
-# Print the predicted class
-print("The model predicts that the image is a:", classes[class_index])
+    classify_images(model_path, images_paths)
