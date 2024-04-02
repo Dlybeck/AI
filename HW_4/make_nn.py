@@ -4,6 +4,7 @@ import numpy as np
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping
 
 # Function to load and preprocess images with class labels
 def load_data(data_dir):
@@ -32,12 +33,14 @@ def load_data(data_dir):
     # Split the data into train and validation sets
     x_train, x_val, y_train, y_val = train_test_split(data, labels, test_size=0.2, random_state=42)
 
-    train_generator = datagen.flow(x_train, y_train, batch_size=32)
-    val_generator = datagen.flow(x_val, y_val, batch_size=32)
+    train_generator = datagen.flow(x_train, y_train, batch_size=20)
+    val_generator = datagen.flow(x_val, y_val, batch_size=25)
 
     return train_generator, val_generator
 
-def create_model():
+def create_model(learning_rate=0.001):
+    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+    
     model = keras.Sequential([
         keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(100, 100, 3)),
         keras.layers.MaxPooling2D((2, 2)),
@@ -49,7 +52,7 @@ def create_model():
         keras.layers.Dense(1, activation='sigmoid')
     ])
 
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     return model
 
 # Get data directory and output filename from command line arguments
@@ -59,10 +62,19 @@ model_filename = sys.argv[2]
 # Load data with labels
 train_data, val_data = load_data(data_dir)
 
+
+# Create the EarlyStopping callback
+early_stopping_callback = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+
 # Create and train the model
-model = create_model()
-model.fit(train_data, epochs=10, validation_data=val_data)
+model = create_model(learning_rate=0.0001)
+model.fit(train_data, epochs=100, validation_data=val_data, callbacks=[early_stopping_callback])
 
 # Save the model without optimizer information
-model.save(model_filename, include_optimizer=False)
-print("Model saved to", model_filename)
+file_contents = model.to_json()
+
+f = open(model_filename + ".dnn", "w")
+f.write(file_contents)
+f.close()
+
+print("Model saved to", model_filename, ".dnn")

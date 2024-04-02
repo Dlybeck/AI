@@ -1,11 +1,16 @@
 import os
 import sys
+import json
 import numpy as np
 from tensorflow import keras
 
-def classify_images(model_path, images_paths):
-    # Load the pre-trained model
-    model = keras.models.load_model(model_path)
+def classify_images(json_path, images_paths):
+    # Load the model architecture from the JSON/DNN file
+    with open(json_path, 'r') as json_file:
+        model_json = json_file.read()
+
+    # Create the model from the JSON/DNN string
+    model = keras.models.model_from_json(model_json)
 
     # Preprocess the images
     images = []
@@ -26,10 +31,10 @@ def classify_images(model_path, images_paths):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python classify.py <model_path> <image1.jpg> <image2.jpg> ...")
+        print("Usage: python classify.py <json_path> <image1.jpg> <image2.jpg> ...")
         sys.exit(1)
 
-    model_path = sys.argv[1]
+    json_path = sys.argv[1]
     images_paths = sys.argv[2:]
 
-    classify_images(model_path, images_paths)
+    classify_images(json_path, images_paths)

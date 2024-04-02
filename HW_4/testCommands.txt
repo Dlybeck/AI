@@ -1,0 +1,5 @@
+CATS:
+python classify.py longTest2.dnn Images/cat1.jpg Images/cat2.jpg Images/cat3.jpg Images/cat4.jpg Images/cat5.jpg Images/cat6.jpg Images/cat7.jpg
+
+DOGS:
+python classify.py longTest2.dnn Images/dog1.jpg Images/dog2.jpg Images/dog3.jpg Images/dog4.jpg Images/dog5.jpg Images/dog6.jpg Images/dog7.jpg
