@@ -5,14 +5,14 @@ import numpy as np
 from tensorflow import keras
 
 def classify_images(json_path, images_paths):
-    # Load the model architecture from the JSON/DNN file
+    #Load the dnn file as a JSON
     with open(json_path, 'r') as json_file:
         model_json = json_file.read()
 
-    # Create the model from the JSON/DNN string
+    #create the full model
     model = keras.models.model_from_json(model_json)
 
-    # Preprocess the images
+    #Preprocess the images
     images = []
     for img_path in images_paths:
         img = keras.preprocessing.image.load_img(img_path, target_size=(100, 100))
@@ -20,7 +20,7 @@ def classify_images(json_path, images_paths):
         img_array = np.expand_dims(img_array, axis=0)
         images.append(img_array)
 
-    # Make predictions
+    #make the prediction
     for img_path, img_array in zip(images_paths, images):
         prediction = model.predict(img_array)[0][0]
         if prediction < 0.5:
@@ -31,7 +31,7 @@ def classify_images(json_path, images_paths):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python classify.py <json_path> <image1.jpg> <image2.jpg> ...")
+        print("Not enough arguments:\n python classify.py <json/dnn_path> <image1> <image2> ...")
         sys.exit(1)
 
     json_path = sys.argv[1]
