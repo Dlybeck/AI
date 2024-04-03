@@ -4,8 +4,8 @@ import numpy as np
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.utils import to_categorical
 
-# Function to load and preprocess images with class labels and split into train and validation sets
 def load_data(data_dir, validation_split=0.2):
     datagen = ImageDataGenerator(rescale=1./255)
     filenames = os.listdir(data_dir)
@@ -28,6 +28,7 @@ def load_data(data_dir, validation_split=0.2):
 
     data = np.array(data)
     labels = np.array(labels)
+    labels = to_categorical(labels, num_classes=2)  # One-hot encode the labels
 
     # Split the data into train and validation sets
     num_samples = len(data)
@@ -43,7 +44,7 @@ def load_data(data_dir, validation_split=0.2):
 
     return train_generator, val_generator
 
-def create_model():  
+def create_model():
     model = keras.Sequential([
         keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(100, 100, 3)),
         keras.layers.MaxPooling2D((2, 2)),
@@ -53,27 +54,22 @@ def create_model():
         keras.layers.Flatten(),
         keras.layers.Dense(64, activation='relu'),
         keras.layers.Dropout(0.2),
-        keras.layers.Dense(1, activation='sigmoid')
+        keras.layers.Dense(2, activation='softmax')  # Change to softmax and 2 output units
     ])
 
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])  # Change to categorical_crossentropy
     return model
 
-# Get data directory and output filename from command line arguments
 data_dir = sys.argv[1]
 model_filename = sys.argv[2]
 
-# Load data with labels and split into train and validation sets
 train_data, val_data = load_data(data_dir)
 
-# Create the EarlyStopping callback
 early_stopping_callback = EarlyStopping(monitor='val_accuracy', patience=2, restore_best_weights=True)
 
-# Create and train the model
 model = create_model()
 model.fit(train_data, epochs=10, validation_data=val_data, callbacks=[early_stopping_callback])
 
-# Save the model without optimizer information
 file_contents = model.to_json()
 
 with open(model_filename + ".dnn", "w") as f:
