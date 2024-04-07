@@ -1,16 +1,11 @@
 import os
 import sys
-import json
 import numpy as np
 from tensorflow import keras
 
-def classify_images(json_path, images_paths):
-    # Load the DNN model from the JSON file
-    with open(json_path, 'r') as json_file:
-        model_json = json_file.read()
-
-    # Create the model from the JSON
-    model = keras.models.model_from_json(model_json)
+def classify_images(model_path, images_paths):
+    # Load the DNN model from the .h5 file
+    model = keras.models.load_model(model_path)
 
     # Preprocess the images
     images = []
@@ -32,9 +27,9 @@ def classify_images(json_path, images_paths):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Not enough arguments:\n python classify.py <json/dnn_path> <image1> <image2> ...")
+        print("Not enough arguments:\n python classify.py <model.h5> <image1> <image2> ...")
         sys.exit(1)
 
-    json_path = sys.argv[1]
+    model_path = sys.argv[1]
     images_paths = sys.argv[2:]
-    classify_images(json_path, images_paths)
+    classify_images(model_path, images_paths)

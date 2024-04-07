@@ -6,8 +6,11 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.utils import to_categorical
 
-def load_data(data_dir, validation_split=0.2):
-    datagen = ImageDataGenerator(rescale=1./255)
+def load_data(data_dir, validation_split=0.01):
+    datagen = ImageDataGenerator(
+        rescale=1./255,
+        horizontal_flip=True,  # Flip images horizontally
+    )
     filenames = os.listdir(data_dir)
     labels = []
     data = []
@@ -39,7 +42,7 @@ def load_data(data_dir, validation_split=0.2):
     x_train, x_val = data[:split_index], data[split_index:]
     y_train, y_val = labels[:split_index], labels[split_index:]
 
-    batch_size = 10
+    batch_size = 25
 
     train_generator = datagen.flow(x_train, y_train, batch_size)
     val_generator = datagen.flow(x_val, y_val, batch_size)
@@ -54,27 +57,27 @@ def create_model():
         Conv2D(64, (3, 3), padding='same', activation='relu', input_shape=(100, 100, 3)),
         BatchNormalization(),
         MaxPooling2D((2, 2)),
-        Dropout(0.2),
+        Dropout(0.3),
         
         Conv2D(128, (3, 3), padding='same', activation='relu'),
         BatchNormalization(),
         MaxPooling2D((2, 2)),
-        Dropout(0.3),
+        Dropout(0.4),
         
         Conv2D(256, (3, 3), padding='same', activation='relu'),
         BatchNormalization(),
         MaxPooling2D((2, 2)),
-        Dropout(0.4),
+        Dropout(0.5),
         
         Flatten(),
         Dense(128, activation='relu'),
         BatchNormalization(),
-        Dropout(0.5),
+        Dropout(0.3),
         
         Dense(2, activation='softmax')
     ])
     
-    optimizer = keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = keras.optimizers.Adam(learning_rate=0.0015)
     model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
     return model
@@ -84,15 +87,11 @@ data_dir = sys.argv[1]
 model_filename = sys.argv[2]
 
 train_data, val_data = load_data(data_dir)
-
-early_stopping_callback = EarlyStopping(monitor='val_accuracy', patience=15, restore_best_weights=True)
+early_stopping_callback = EarlyStopping(monitor='loss', patience=12, restore_best_weights=True)
 
 model = create_model()
 model.fit(train_data, epochs=1000, validation_data=val_data, callbacks=[early_stopping_callback])
 
-file_contents = model.to_json()
-
-with open(model_filename + ".dnn", "w") as f:
-    f.write(file_contents)
-
-print("Model saved to", model_filename, ".dnn")
+# Save the model to an .h5 file
+model.save(model_filename + ".h5")
+print("Model saved to", model_filename, ".h5")
