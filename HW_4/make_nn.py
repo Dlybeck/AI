@@ -94,5 +94,5 @@ model = create_model()
 model.fit(train_data, epochs=1000, validation_data=val_data, callbacks=[early_stopping_callback])
 
 #Save the model to an .h5 file
-model.save(model_filename + ".h5")
+model.save(model_filename + ".h5",  include_optimizer = False)
 print("Model saved to", model_filename, ".h5")
