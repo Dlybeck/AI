@@ -66,12 +66,48 @@ def parse_arguments():
 
         reps[i] = rep(info[0], info[1], coords)
 
-    return reps, sys.argv[2]
+    return reps, int(sys.argv[2])
 
-def find_Start(reps, n):
-    max_Dist = 0
-    max_Reps = [None] * n
-    #Find the farthest nodes...
+def find_farthest_nodes(reps, n):
+    distances = []
+    for i in range(len(reps)):
+        for j in range(i + 1, len(reps)):
+            rep1 = reps[i]
+            rep2 = reps[j]
+            if rep1 != rep2:  # Skip duplicate pairs
+                distance = find_Distance(rep1, rep2)
+                distances.append((distance, (rep1, rep2)))
+
+    # Sort distances in descending order using a custom selection sort algorithm
+    for i in range(n):
+        max_index = i
+        for j in range(i + 1, len(distances)):
+            if distances[j][0] > distances[max_index][0]:
+                max_index = j
+        distances[i], distances[max_index] = distances[max_index], distances[i]
+
+    # Select the farthest nodes without duplicates
+    farthest_nodes = []
+    seen_nodes = set()
+    for distance, (rep1, rep2) in distances:
+        if rep1 not in seen_nodes and rep2 not in seen_nodes:
+            farthest_nodes.append((distance, (rep1, rep2)))
+            seen_nodes.add(rep1)
+            seen_nodes.add(rep2)
+            if len(farthest_nodes) == n:
+                break
+    
+    max_Reps = []
+    i = 0
+    while(len(max_Reps) < n):
+        max_Reps.append(farthest_nodes[i][1][0])
+
+        if(len(max_Reps) < n):
+            max_Reps.append(farthest_nodes[i][1][1])
+
+        i += 1
+
+
 
     return max_Reps
 
@@ -81,11 +117,10 @@ def find_Distance(rep1, rep2):
     coords1 = rep1.coords
     coords2 = rep2.coords
 
-    distance = 0
+    squared_Dists = []
     for i in range(len(coords1)):
-        distance += abs(coords1[i] - coords2[i])
-
-    return distance
+        squared_Dists.append((coords1[i] - coords2[i]) ** 2)
+    return sum(squared_Dists)
 
 '''
 Main method
@@ -93,5 +128,8 @@ Main method
 if __name__ == "__main__":
     data, n = parse_arguments()
 
-    rep1, rep2 = find_Start(data, n)
+    maxReps = find_farthest_nodes(data, n)
+
+    for rep in maxReps:
+        print(rep)
     
