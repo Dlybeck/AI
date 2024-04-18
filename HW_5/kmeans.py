@@ -26,6 +26,9 @@ def parse_arguments():
         print("ERROR: Incorrect Number of Arguments")
         print("Usage: python <file> <num of groups>")
         sys.exit()
+    if(int(sys.argv[2]) < 2):
+        print("ERROR: Number of groups must be 2 or greater")
+        sys.exit()
     
     fileName = sys.argv[1]
     
@@ -63,7 +66,16 @@ def parse_arguments():
 
         reps[i] = rep(info[0], info[1], coords)
 
-    return reps
+    return reps, sys.argv[2]
+
+def find_Start(reps, n):
+    max_Dist = 0
+    max_Reps = [None] * n
+    #Find the farthest nodes...
+
+    return max_Reps
+
+
 
 def find_Distance(rep1, rep2):
     coords1 = rep1.coords
@@ -79,8 +91,7 @@ def find_Distance(rep1, rep2):
 Main method
 '''
 if __name__ == "__main__":
-    data = parse_arguments()
-    print(data[0])
+    data, n = parse_arguments()
 
-    distance = find_Distance(data[0], data[1])
-    print(distance)
+    rep1, rep2 = find_Start(data, n)
+    
