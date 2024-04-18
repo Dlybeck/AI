@@ -46,13 +46,13 @@ def load_data(data_dir, validation_split=0.2):
 
 def create_model():
     model = keras.Sequential([
-        keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(100, 100, 3)),
-        keras.layers.MaxPooling2D((2, 2)),
+        keras.layers.Conv2D(32, (3, 3), activation='tanh', input_shape=(100, 100, 3)),
+        keras.layers.MaxPooling2D((5, 5)),
         keras.layers.Conv2D(64, (3, 3), activation='relu'),
         keras.layers.Dropout(0.4),
         keras.layers.MaxPooling2D((2, 2)),
         keras.layers.Flatten(),
-        keras.layers.Dense(64, activation='relu'),
+        keras.layers.Dense(64, activation='tanh'),
         keras.layers.Dropout(0.2),
         keras.layers.Dense(2, activation='softmax')  # Change to softmax and 2 output units
     ])
@@ -65,10 +65,10 @@ model_filename = sys.argv[2]
 
 train_data, val_data = load_data(data_dir)
 
-early_stopping_callback = EarlyStopping(monitor='val_accuracy', patience=2, restore_best_weights=True)
+early_stopping_callback = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
 model = create_model()
-model.fit(train_data, epochs=10, validation_data=val_data, callbacks=[early_stopping_callback])
+model.fit(train_data, epochs=1000, validation_data=val_data, callbacks=[early_stopping_callback])
 
 file_contents = model.to_json()
 
