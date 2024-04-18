@@ -68,48 +68,41 @@ def parse_arguments():
 
     return reps, int(sys.argv[2])
 
-def find_farthest_nodes(reps, n):
+def find_Start(reps, n):
     distances = []
     for i in range(len(reps)):
         for j in range(i + 1, len(reps)):
             rep1 = reps[i]
             rep2 = reps[j]
-            if rep1 != rep2:  # Skip duplicate pairs
+            if rep1 != rep2:  # Skip duplicates
                 distance = find_Distance(rep1, rep2)
                 distances.append((distance, (rep1, rep2)))
 
-    # Sort distances in descending order using a custom selection sort algorithm
-    for i in range(n):
-        max_index = i
-        for j in range(i + 1, len(distances)):
-            if distances[j][0] > distances[max_index][0]:
-                max_index = j
-        distances[i], distances[max_index] = distances[max_index], distances[i]
+    #Sort distances by distance (x[0])
+    sorted_distances = sorted(distances, key=lambda x: x[0], reverse=True)
 
     # Select the farthest nodes without duplicates
-    farthest_nodes = []
-    seen_nodes = set()
-    for distance, (rep1, rep2) in distances:
-        if rep1 not in seen_nodes and rep2 not in seen_nodes:
-            farthest_nodes.append((distance, (rep1, rep2)))
-            seen_nodes.add(rep1)
-            seen_nodes.add(rep2)
-            if len(farthest_nodes) == n:
+    farthest_reps = []
+    seen_reps = set()
+    for distance, (rep1, rep2) in sorted_distances:
+        if rep1 not in seen_reps and rep2 not in seen_reps:
+            farthest_reps.append((distance, (rep1, rep2)))
+            seen_reps.add(rep1)
+            seen_reps.add(rep2)
+            if len(farthest_reps) == n:
                 break
-    
-    max_Reps = []
+
+    max_reps = []
     i = 0
-    while(len(max_Reps) < n):
-        max_Reps.append(farthest_nodes[i][1][0])
-
-        if(len(max_Reps) < n):
-            max_Reps.append(farthest_nodes[i][1][1])
-
+    while (i < len(farthest_reps)) and len(max_reps) < n:
+        distance, (rep1, rep2) = farthest_reps[i]
+        if rep1 not in max_reps:
+            max_reps.append(rep1)
+        if rep2 not in max_reps and len(max_reps) < n:
+            max_reps.append(rep2)
         i += 1
 
-
-
-    return max_Reps
+    return list(max_reps)
 
 
 
@@ -128,7 +121,7 @@ Main method
 if __name__ == "__main__":
     data, n = parse_arguments()
 
-    maxReps = find_farthest_nodes(data, n)
+    maxReps = find_Start(data, n)
 
     for rep in maxReps:
         print(rep)
