@@ -1,5 +1,15 @@
 import sys
 import copy
+
+'''
+This Program takes a file with representatives and their voting history along with a number for the amount of groups to split.
+It then uses k-menas to split the data into n groups
+
+Author: David Lybeck
+Date: 4/18/24
+'''
+
+
 '''
 This class is used to hold all of a representatives data such as their id, what their label is
 and their voting history
@@ -54,48 +64,54 @@ def parse_arguments():
 
         coords = []
 
+        #Convert votes into "coordinates"
         for vote in votes:
             if vote == '+': coords.append(1)
             elif vote == '-': coords.append(-1)
             elif vote == '.': coords.append(0)
             else:
-                print("ERROR: Invalid vote: -", vote, "-")
+                print("ERROR: Invalid vote: ", vote)
                 sys.exit()
 
-
-
-
         reps[i] = rep(info[0], info[1], coords)
-
     return reps, int(sys.argv[2])
 
+'''
+Find the farthest apart nodes to use as the starting nodes for k-means
+
+Return: n Fartest apart coords to start k-means
+'''
 def find_Start(reps, n):
     distances = []
+    #Create a list of all distances and the reps that the distances are between
     for i in range(len(reps)):
-        for j in range(i + 1, len(reps)):
-            rep1 = reps[i]
-            rep2 = reps[j]
-            if rep1 != rep2:  # Skip duplicates
+        for j in range(len(reps)):
+            if(j > i):
+                rep1 = reps[i]
+                rep2 = reps[j]
                 distance = find_Distance(rep1.coords, rep2.coords)
                 distances.append((distance, (rep1, rep2)))
 
-    #Sort distances by distance (x[0])
+    #Sort distances by the distance at [0]
     sorted_distances = sorted(distances, key=lambda x: x[0], reverse=True)
 
     # Select the farthest nodes without duplicates
     farthest_reps = []
     seen_reps = set()
     for distance, (rep1, rep2) in sorted_distances:
+        #if this is a new pair
         if rep1 not in seen_reps and rep2 not in seen_reps:
             farthest_reps.append((distance, (rep1, rep2)))
             seen_reps.add(rep1)
             seen_reps.add(rep2)
-            if len(farthest_reps) == n:
+            if len(farthest_reps) == n: #if we found enough far reps
                 break
 
     max_coords = []
     max_reps = []
     i = 0
+
+    #While there are reps left to check AND we are still looking for coords
     while (i < len(farthest_reps)) and len(max_coords) < n:
         distance, (rep1, rep2) = farthest_reps[i]
         if rep1.coords not in max_coords:
@@ -106,15 +122,19 @@ def find_Start(reps, n):
             max_reps.append(rep2.id)
         i += 1
 
-    print()
     print("Initial centroids based on: ", ', '.join(max_reps))
 
     return max_coords
 
+'''
+Finds the sum-squared difference between 2 coordinates
+
+Returns: the sum-squared distance
+'''
 def find_Distance(coords1, coords2):
     squared_Dists = []
     for i in range(len(coords1)):
-        squared_Dists.append((coords1[i] - coords2[i]) ** 2)
+        squared_Dists.append(((coords1[i] - coords2[i])) ** 2)
     return sum(squared_Dists)
 
 def E_Step(data, centroids):
@@ -127,11 +147,13 @@ def E_Step(data, centroids):
             dist = find_Distance(rep.coords, cent)
             if(best_Dist == None) or (dist < best_Dist):
                 best_Dist = dist
-                rep.group = group
+                rep.group = group #classify rep to this group
 
             group += 1
 
-#Move centroids to center of group
+'''
+The M step for k-means, updates the position of the centroids
+'''
 def M_Step(data, centroids):
     # num of reps in each group (initialized to 0)
     group_Sizes = [0] * len(centroids)
@@ -152,12 +174,15 @@ def M_Step(data, centroids):
             centroids[i] = [0] * len(centroids[i])
 
 
+'''
+Checks to see of the data matches
+
+Return: True if match, False if not
+'''
 def sameData(data1, data2):
     for i in range(len(data1)):
         if(data1[i].group != data2[i].group): return False
     return True
-
-
 
 '''
 Main method
@@ -185,15 +210,11 @@ if __name__ == "__main__":
                 if(rep.group == i): size+=1
                 if(rep.label == 'D'): Ds+=1
                 if(rep.label == 'R'): Rs+=1
-
-        Ds = (Ds/size)*100
-        Rs = (Rs/size)*100
+        if(size != 0):
+            Ds = (Ds/size)*100
+            Rs = (Rs/size)*100
+        else: 
+            Ds = 0
+            Rs = 0
+        
         print("   Group" + str(i+1)+ ":  size "+ str(size)+ " ("+ str(round(Ds, 3))+ "% D, "+ str(round(Rs, 3))+ "% R)")
-
-
-    
-    
-
-
-
-    
