@@ -26,6 +26,10 @@ class rep:
         for coord in self.coords:
             coord_Str += ' '+str(coord)
         return self.id + " "+ self.label + " " + coord_Str
+    
+    def ___eq___ (self, other):
+        if(self.id == other.id): return True
+        else: return False
 
 '''
 Parses through the arguments given from the command line and turns the given data into a list of reps
@@ -82,48 +86,43 @@ Find the farthest apart nodes to use as the starting nodes for k-means
 Return: n Fartest apart coords to start k-means
 '''
 def find_Start(reps, n):
-    distances = []
-    #Create a list of all distances and the reps that the distances are between
+    max_Dist = 0
+    dist = 0
+    max_Reps = [None, None]
+    
+
+    #find the first 2
     for i in range(len(reps)):
         for j in range(len(reps)):
             if(j > i):
                 rep1 = reps[i]
                 rep2 = reps[j]
-                distance = find_Distance(rep1.coords, rep2.coords)
-                distances.append((distance, (rep1, rep2)))
+                dist = find_Distance(rep1.coords, rep2.coords)
+                if(dist > max_Dist):
+                    max_Reps[0] = rep1
+                    max_Reps[1] = rep2
+                    dist = max_Dist
 
-    #Sort distances by the distance at [0]
-    sorted_distances = sorted(distances, key=lambda x: x[0], reverse=True)
+    #loop until enough are picked
+    while(len(max_Reps) < n):
+        max_Dist = 0
+        max_Rep = None
+        for rep in reps:
+            if rep not in max_Reps:
+                dist = find_Distance(rep.coords, max_Reps[0].coords) + find_Distance(rep.coords, max_Reps[1].coords)
+                if dist > max_Dist:
+                    max_Rep = rep
+                    max_Dist = dist
+        max_Reps.append(rep)
 
-    # Select the farthest nodes without duplicates
-    farthest_reps = []
-    seen_reps = set()
-    for distance, (rep1, rep2) in sorted_distances:
-        #if this is a new pair
-        if rep1 not in seen_reps and rep2 not in seen_reps:
-            farthest_reps.append((distance, (rep1, rep2)))
-            seen_reps.add(rep1)
-            seen_reps.add(rep2)
-            if len(farthest_reps) == n: #if we found enough far reps
-                break
-
+    #convert to coordinates instead of rep objects
     max_coords = []
-    max_reps = []
-    i = 0
+    max_ids = []
+    for rep in max_Reps:
+        max_coords.append(rep.coords)
+        max_ids.append(rep.id)
 
-    #While there are reps left to check AND we are still looking for coords
-    while (i < len(farthest_reps)) and len(max_coords) < n:
-        distance, (rep1, rep2) = farthest_reps[i]
-        if rep1.coords not in max_coords:
-            max_coords.append(rep1.coords)
-            max_reps.append(rep1.id)
-        if rep2.coords not in max_coords and len(max_coords) < n:
-            max_coords.append(rep2.coords)
-            max_reps.append(rep2.id)
-        i += 1
-
-    print("Initial centroids based on: ", ', '.join(max_reps))
-
+    print("Initial centroids based on: ", ', '.join(max_ids))
     return max_coords
 
 '''
