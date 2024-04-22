@@ -6,7 +6,7 @@ This Program takes a file with representatives and their voting history along wi
 It then uses k-menas to split the data into n groups
 
 Author: David Lybeck
-Date: 4/18/24
+Date: 4/21/24
 '''
 
 
@@ -101,7 +101,7 @@ def find_Start(reps, n):
                 if(dist > max_Dist):
                     max_Reps[0] = rep1
                     max_Reps[1] = rep2
-                    dist = max_Dist
+                    max_Dist = dist
 
     #loop until enough are picked
     while(len(max_Reps) < n):
@@ -109,11 +109,14 @@ def find_Start(reps, n):
         max_Rep = None
         for rep in reps:
             if rep not in max_Reps:
-                dist = find_Distance(rep.coords, max_Reps[0].coords) + find_Distance(rep.coords, max_Reps[1].coords)
+                dist = 0
+                for i in range(len(max_Reps)):    
+                    dist += find_Distance(rep.coords, max_Reps[i].coords)
+                
                 if dist > max_Dist:
                     max_Rep = rep
                     max_Dist = dist
-        max_Reps.append(rep)
+        max_Reps.append(max_Rep)
 
     #convert to coordinates instead of rep objects
     max_coords = []
@@ -193,10 +196,10 @@ if __name__ == "__main__":
     old_Centroids = []
     rounds = 0
     while(old_Centroids != centroids):
-        rounds+=1
         old_Centroids = copy.deepcopy(centroids)
         E_Step(data, centroids)
         M_Step(data, centroids)
+        rounds+=1
     
     print("Converged after ", rounds, " rounds of k-means.")
     for i in range(len(centroids)):
@@ -216,4 +219,4 @@ if __name__ == "__main__":
             Ds = 0
             Rs = 0
         
-        print("   Group" + str(i+1)+ ":  size "+ str(size)+ " ("+ str(round(Ds, 3))+ "% D, "+ str(round(Rs, 3))+ "% R)")
+        print("    Group " + str(i+1)+ ":  size "+ str(size)+ " ("+ str(round(Ds, 3))+ "% D, "+ str(round(Rs, 3))+ "% R)")
